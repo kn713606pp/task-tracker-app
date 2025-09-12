@@ -463,7 +463,32 @@
             function bootstrapMainApp() { dom.loadingOverlay.style.display = 'none'; dom.welcomeOverlay.classList.add('visible'); populateSelects(); setTimeout(() => { dom.welcomeOverlay.classList.remove('visible'); setTimeout(() => { dom.appContainer.classList.remove('hidden'); dom.appContainer.classList.remove('opacity-0'); }, 500); }, 2000); updateSortButtonsUI(); listenForCategories(); listenForTasks(); initializeDragAndDrop(); bindEventListeners(); }
             function populateSelects() { const priorityOptions = Object.keys(PRIORITIES).map(p => `<option value="${p}">${p}</option>`).join(''); [dom.addTaskPriority, dom.editTaskPriority].forEach(sel => sel.innerHTML = priorityOptions); }
             
-            function initializeDragAndDrop() { new Sortable(dom.todoList, { animation: 150, ghostClass: 'sortable-ghost', onEnd: async (evt) => { if (state.currentSortOrder !== 'priority') { state.currentSortOrder = 'priority'; updateSortButtonsUI(); } const taskElements = dom.todoList.querySelectorAll('.task-card'); const batch = writeBatch(state.db); taskElements.forEach((el, index) => { const taskId = el.dataset.id; if(taskId) { const taskRef = doc(state.db, 'tasks', taskId); batch.update(taskRef, { order: index }); } }); try { await batch.commit(); } catch (error) { console.error("更新任務順序失敗:", error); } }, }); }
+            function initializeDragAndDrop() { 
+                new Sortable(dom.todoList, { 
+                    animation: 150, 
+                    ghostClass: 'sortable-ghost', 
+                    onEnd: async (evt) => { 
+                        if (state.currentSortOrder !== 'priority') { 
+                            state.currentSortOrder = 'priority'; 
+                            updateSortButtonsUI(); 
+                        } 
+                        const taskElements = dom.todoList.querySelectorAll('.task-card'); 
+                        const batch = writeBatch(state.db); 
+                        taskElements.forEach((el, index) => { 
+                            const taskId = el.dataset.id; 
+                            if(taskId) { 
+                                const taskRef = doc(state.db, 'tasks', taskId); 
+                                batch.update(taskRef, { order: index }); 
+                            } 
+                        }); 
+                        try { 
+                            await batch.commit(); 
+                        } catch (error) { 
+                            console.error("更新任務順序失敗:", error); 
+                        } 
+                    }, 
+                }); 
+            }
             function highlightText(text, searchTerm) { if (!searchTerm || !text) return text; const regex = new RegExp(`(${searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'); return text.replace(regex, `<mark>$1</mark>`); }
 
             function listenForCategories() { const categoriesCollection = collection(state.db, 'categories'); if(unsubscribeCategories) unsubscribeCategories(); unsubscribeCategories = onSnapshot(query(categoriesCollection), (snapshot) => { if (snapshot.empty) { const defaultCategories = ["董總交辦", "行政管理", "運籌管理", "有機植萃", "品質管理"]; const batch = writeBatch(state.db); defaultCategories.forEach(name => { const docRef = doc(collection(state.db, "categories")); batch.set(docRef, { name }); }); batch.commit(); return; } state.categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); const categoryNames = state.categories.map(c => c.name); if (state.activeCategory !== ALL_TASKS_VIEW && !categoryNames.includes(state.activeCategory)) { state.activeCategory = ALL_TASKS_VIEW; localStorage.setItem('activeCategory', state.activeCategory); } renderCategoriesUI(); renderTasksAndTrash(); }); }
@@ -500,7 +525,60 @@
                 }, (error) => { console.error("監聽任務時發生錯誤:", error); showError("無法讀取雲端資料。"); }); 
             }
             
-            function renderCategoriesUI() { const container = dom.categoryTabsContainer; container.innerHTML = ''; const allTasks = Array.from(state.localTasksCache.values()); const todoCounts = allTasks.reduce((acc, task) => { if (task.status !== STATUSES.COMPLETED && task.status !== STATUSES.DELETED) { acc[task.category] = (acc[task.category] || 0) + 1; } return acc; }, {}); const totalTodoCount = Object.values(todoCounts).reduce((sum, count) => sum + count, 0); const createTab = (name, id, isAllTab = false) => { const count = isAllTab ? totalTodoCount : (todoCounts[name] || 0); const categoryValue = isAllTab ? ALL_TASKS_VIEW : name; const isActive = state.activeCategory === categoryValue; const tabWrapper = document.createElement('div'); tabWrapper.className = `category-tab relative flex items-center pr-2 rounded-md transition-colors duration-200 ${isActive ? 'tab-active' : 'tab-inactive'}`; const tabLink = document.createElement('a'); tabLink.href = '#'; tabLink.dataset.category = categoryValue; if (!isAllTab) { tabLink.dataset.categoryId = id; tabWrapper.innerHTML += `<button data-category-name="${name}" class="export-category-btn p-1 text-slate-400 hover:text-indigo-600"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>` } tabLink.className = `flex-grow pl-4 pr-2 py-2 text-sm font-semibold`; tabLink.innerHTML = `<span>${name}</span> <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${isActive ? 'bg-indigo-200 text-indigo-800' : 'bg-slate-200 text-slate-600'}">${count}</span>`; tabWrapper.prepend(tabLink); if (!isAllTab) { const removeButton = document.createElement('button'); removeButton.className = 'remove-category-btn p-1 rounded-full hover:bg-red-200 hover:text-red-700 text-slate-400'; removeButton.innerHTML = `<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`; removeButton.title = `移除分類 "${name}"`; removeButton.dataset.categoryId = id; removeButton.dataset.categoryName = name; tabWrapper.appendChild(removeButton); } container.appendChild(tabWrapper); }; createTab('所有任務', null, true); state.categories.forEach(cat => createTab(cat.name, cat.id)); const addCategoryButton = document.createElement('button'); addCategoryButton.id = 'add-category-btn'; addCategoryButton.className = "ml-2 px-3 py-1.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors duration-200"; addCategoryButton.textContent = "+ 新增"; container.appendChild(addCategoryButton); const selectOptionsHTML = state.categories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join(''); [dom.addTaskCategory, dom.editTaskCategory].forEach(select => { if (select) select.innerHTML = selectOptionsHTML; }); if(state.activeCategory && state.activeCategory !== ALL_TASKS_VIEW) { dom.addTaskCategory.value = state.activeCategory; } else if (state.categories.length > 0) { dom.addTaskCategory.value = state.categories[0].name; } }
+            function renderCategoriesUI() { 
+                const container = dom.categoryTabsContainer; 
+                container.innerHTML = ''; 
+                const allTasks = Array.from(state.localTasksCache.values()); 
+                const todoCounts = allTasks.reduce((acc, task) => { 
+                    if (task.status !== STATUSES.COMPLETED && task.status !== STATUSES.DELETED) { 
+                        acc[task.category] = (acc[task.category] || 0) + 1; 
+                    } 
+                    return acc; 
+                }, {}); 
+                const totalTodoCount = Object.values(todoCounts).reduce((sum, count) => sum + count, 0); 
+                
+                const createTab = (name, id, isAllTab = false) => { 
+                    const count = isAllTab ? totalTodoCount : (todoCounts[name] || 0); 
+                    const categoryValue = isAllTab ? ALL_TASKS_VIEW : name; 
+                    const isActive = state.activeCategory === categoryValue; 
+                    const tabWrapper = document.createElement('div'); 
+                    tabWrapper.className = `category-tab relative flex items-center pr-2 rounded-md transition-colors duration-200 ${isActive ? 'tab-active' : 'tab-inactive'}`; 
+                    const tabLink = document.createElement('a'); 
+                    tabLink.href = '#'; 
+                    tabLink.dataset.category = categoryValue; 
+                    if (!isAllTab) { 
+                        tabLink.dataset.categoryId = id; 
+                        tabWrapper.innerHTML += `<button data-category-name="${name}" class="export-category-btn p-1 text-slate-400 hover:text-indigo-600"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>` 
+                    } 
+                    tabLink.className = `flex-grow pl-4 pr-2 py-2 text-sm font-semibold`; 
+                    tabLink.innerHTML = `<span>${name}</span> <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${isActive ? 'bg-indigo-200 text-indigo-800' : 'bg-slate-200 text-slate-600'}">${count}</span>`; 
+                    tabWrapper.prepend(tabLink); 
+                    if (!isAllTab) { 
+                        const removeButton = document.createElement('button'); 
+                        removeButton.className = 'remove-category-btn p-1 rounded-full hover:bg-red-200 hover:text-red-700 text-slate-400'; 
+                        removeButton.innerHTML = `<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`; 
+                        removeButton.title = `移除分類 "${name}"`; 
+                        removeButton.dataset.categoryId = id; 
+                        removeButton.dataset.categoryName = name; 
+                        tabWrapper.appendChild(removeButton); 
+                    } 
+                    container.appendChild(tabWrapper); 
+                }; 
+                
+                createTab('所有任務', null, true); 
+                state.categories.forEach(cat => createTab(cat.name, cat.id)); 
+                
+                const addCategoryButton = document.createElement('button'); 
+                addCategoryButton.id = 'add-category-btn'; 
+                addCategoryButton.className = "ml-2 px-3 py-1.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors duration-200"; 
+                addCategoryButton.textContent = "+ 新增"; 
+                container.appendChild(addCategoryButton); 
+                
+                const selectOptionsHTML = state.categories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join(''); 
+                [dom.addTaskCategory, dom.editTaskCategory].forEach(select => { if (select) select.innerHTML = selectOptionsHTML; }); 
+                if(state.activeCategory && state.activeCategory !== ALL_TASKS_VIEW) { dom.addTaskCategory.value = state.activeCategory; } 
+                else if (state.categories.length > 0) { dom.addTaskCategory.value = state.categories[0].name; } 
+            }
             function renderAssigneeDatalist(assignees) { dom.assigneeDatalist.innerHTML = Array.from(assignees).map(name => `<option value="${name}"></option>`).join(''); }
             
 
@@ -641,13 +719,14 @@
 
                 const taskId = taskCard.dataset.id;
                 
+                // This selector finds any interactive element.
                 const isActionButton = target.closest('button, a, input, textarea, form');
 
                 if (isActionButton) {
                     if (target.closest('.delete-btn')) { deleteTask(taskId); } 
                     else if (target.closest('.edit-btn')) { showEditModal(state.localTasksCache.get(taskId)); } 
                     else if (target.closest('.action-menu-btn')) { e.stopPropagation(); const menu = taskCard.querySelector('.action-menu'); if(menu) menu.classList.toggle('hidden'); } 
-                    else if (target.closest('.action-option')) { e.preventDefault(); promptForStatusChange(taskId, target.closest('.action-option').dataset.status); }
+                    else if (target.closest('.action-option')) { e.preventDefault(); handleStatusChange(taskId, target.closest('.action-option').dataset.status); }
                     else if (target.closest('.history-btn')) { showHistoryModal(state.localTasksCache.get(taskId)); }
                     else if (target.closest('.inline-edit-assignee-btn')) { handleAssigneeInlineEdit(target.closest('.group'), taskId); }
                     return; 
@@ -701,7 +780,7 @@
                 e.preventDefault(); 
                 const newOrder = Array.from(state.localTasksCache.values()).filter(t => t.status !== STATUSES.COMPLETED && t.status !== STATUSES.DELETED).length; 
                 const newAssignee = dom.addTaskAssignee.value.trim() || '未指派'; 
-                const newTask = { title: dom.addTaskTitle.value, description: dom.addTaskDesc.value, dueDate: dom.addTaskDueDate.value, createdAt: serverTimestamp(), category: dom.addTaskCategory.value, createdBy: state.userName, status: STATUSES.TODO, order: newOrder, imageData: state.currentImageBase64, subtasks: [], priority: dom.addTaskPriority.value, assignee: newAssignee, history: [{ status: STATUSES.TODO, reason: '初始建立', timestamp: serverTimestamp(), user: state.userName }] }; 
+                const newTask = { title: dom.addTaskTitle.value, description: dom.addTaskDesc.value, dueDate: dom.addTaskDueDate.value, createdAt: serverTimestamp(), category: dom.addTaskCategory.value, createdBy: state.userName, status: STATUSES.TODO, order: newOrder, imageData: state.currentImageBase64, subtasks: [], priority: dom.addTaskPriority.value, assignee: newAssignee, history: [{ status: STATUSES.TODO, reason: '初始建立', timestamp: Timestamp.now(), user: state.userName }] }; 
                 try { await addDoc(collection(state.db, 'tasks'), newTask); dom.addTaskForm.reset(); dom.addTaskCategory.value = (state.activeCategory !== ALL_TASKS_VIEW) ? state.activeCategory : (state.categories[0]?.name || ''); dom.imagePreviewContainer.innerHTML = ''; state.currentImageBase64 = null; updateAiSummarizeBtnState(); } catch (error) { console.error("新增任務失敗:", error); } 
             }
 
@@ -713,8 +792,22 @@
                 try { await updateDoc(doc(state.db, 'tasks', state.currentEditingTaskId), updatedData); hideEditModal(); } catch (error) { console.error("更新任務失敗:", error); } 
             }
             
-            function promptForStatusChange(taskId, newStatus) { state.statusChangeContext = { taskId, newStatus }; dom.newStatusLabel.textContent = newStatus; dom.statusReasonModal.classList.remove('hidden'); dom.statusReasonModal.classList.add('flex'); dom.statusReasonInput.focus(); }
-            async function updateTaskStatus(taskId, newStatus, reason = '') { const task = state.localTasksCache.get(taskId); if (!task) return; const newHistoryEntry = { status: newStatus, reason: reason.trim() || '未提供原因', timestamp: serverTimestamp(), user: state.userName }; const updatedHistory = [...(task.history || []), newHistoryEntry]; await updateDoc(doc(state.db, 'tasks', taskId), { status: newStatus, history: updatedHistory, updatedAt: serverTimestamp() }); }
+            function handleStatusChange(taskId, newStatus) {
+                const task = state.localTasksCache.get(taskId);
+                if (!task) return;
+
+                if (task.status === STATUSES.TODO && newStatus === STATUSES.HOLD) {
+                    state.statusChangeContext = { taskId, newStatus };
+                    dom.newStatusLabel.textContent = newStatus;
+                    dom.statusReasonModal.classList.remove('hidden');
+                    dom.statusReasonModal.classList.add('flex');
+                    dom.statusReasonInput.focus();
+                } else {
+                    updateTaskStatus(taskId, newStatus);
+                }
+            }
+
+            async function updateTaskStatus(taskId, newStatus, reason = '') { const task = state.localTasksCache.get(taskId); if (!task) return; const newHistoryEntry = { status: newStatus, reason: reason.trim() || '狀態變更', timestamp: Timestamp.now(), user: state.userName }; const updatedHistory = [...(task.history || []), newHistoryEntry]; await updateDoc(doc(state.db, 'tasks', taskId), { status: newStatus, history: updatedHistory, updatedAt: serverTimestamp() }); }
             async function deleteTask(id) { if (!id) return; await updateTaskStatus(id, STATUSES.DELETED, '移至垃圾桶'); }
             function showEditModal(task) { if(!task) return; state.currentEditingTaskId = task.id; dom.editTaskTitle.value = task.title || ''; dom.editTaskDesc.value = task.description || ''; dom.editTaskDueDate.value = task.dueDate || ''; dom.editTaskCategory.value = task.category || state.categories[0].name; dom.editTaskPriority.value = task.priority || '中'; dom.editTaskAssignee.value = task.assignee || ''; dom.editModalOverlay.classList.remove('hidden'); dom.editModalOverlay.classList.add('flex'); }
             function hideEditModal() { state.currentEditingTaskId = null; dom.editModalOverlay.classList.add('hidden'); dom.editModalOverlay.classList.remove('flex'); }
@@ -722,7 +815,7 @@
             function showError(message) { dom.loadingOverlay.innerHTML = `<div class="text-center text-red-700 bg-red-100 p-4 rounded-lg"><h3>錯誤</h3><p>${message}</p></div>`; dom.loadingOverlay.style.display = 'flex'; }
             function handleTrashActions(e) { const restoreBtn = e.target.closest('.restore-btn'); if (restoreBtn) { updateTaskStatus(restoreBtn.dataset.taskId, STATUSES.TODO, '從垃圾桶還原'); return; } const permDeleteBtn = e.target.closest('.perm-delete-btn'); if (permDeleteBtn) { if (confirm('確定要永久刪除這個任務嗎？此操作無法復原。')) { deleteDoc(doc(state.db, 'tasks', permDeleteBtn.dataset.taskId)); } } }
             function showHistoryModal(task) { dom.historyList.innerHTML = ''; if (!task.history || task.history.length === 0) { dom.historyList.innerHTML = '<p class="text-slate-500">沒有歷史紀錄。</p>'; } else { task.history.slice().reverse().forEach(entry => { const item = document.createElement('div'); item.className = 'history-item pb-2'; item.innerHTML = `<p class="font-semibold text-slate-800">${entry.status}</p><p class="text-sm text-slate-600">${entry.reason}</p><p class="text-xs text-slate-400 mt-1">${entry.timestamp ? new Date(entry.timestamp.seconds * 1000).toLocaleString() : '時間未知'} by ${entry.user}</p>`; dom.historyList.appendChild(item); }); } dom.historyModal.classList.remove('hidden'); dom.historyModal.classList.add('flex'); }
-            async function clearCompletedTasks() { const tasksToClear = Array.from(state.localTasksCache.values()).filter(t => t.status === STATUSES.COMPLETED && (state.activeCategory === ALL_TASKS_VIEW || t.category === state.activeCategory)); if (tasksToClear.length === 0) return; if (!confirm(`確定要將 ${tasksToClear.length} 個已完成項目移至垃圾桶嗎？`)) return; const batch = writeBatch(state.db); tasksToClear.forEach(task => { const newHistoryEntry = { status: STATUSES.DELETED, reason: '清除已完成項目', timestamp: serverTimestamp(), user: state.userName }; const updatedHistory = [...(task.history || []), newHistoryEntry]; batch.update(doc(state.db, 'tasks', task.id), { status: STATUSES.DELETED, history: updatedHistory, updatedAt: serverTimestamp() }); }); await batch.commit(); }
+            async function clearCompletedTasks() { const tasksToClear = Array.from(state.localTasksCache.values()).filter(t => t.status === STATUSES.COMPLETED && (state.activeCategory === ALL_TASKS_VIEW || t.category === state.activeCategory)); if (tasksToClear.length === 0) return; if (!confirm(`確定要將 ${tasksToClear.length} 個已完成項目移至垃圾桶嗎？`)) return; const batch = writeBatch(state.db); tasksToClear.forEach(task => { const newHistoryEntry = { status: STATUSES.DELETED, reason: '清除已完成項目', timestamp: Timestamp.now(), user: state.userName }; const updatedHistory = [...(task.history || []), newHistoryEntry]; batch.update(doc(state.db, 'tasks', task.id), { status: STATUSES.DELETED, history: updatedHistory, updatedAt: serverTimestamp() }); }); await batch.commit(); }
             function handleSubtaskForms(e) { const taskCard = e.target.closest('.task-card'); if (!taskCard) return; const taskId = taskCard.dataset.id; if (e.target.matches('input[type="checkbox"]')) { const subtaskIndex = parseInt(e.target.closest('li').dataset.index); toggleSubtaskCompletion(taskId, subtaskIndex); } else if (e.target.closest('.add-subtask-form')) { e.preventDefault(); const form = e.target.closest('.add-subtask-form'); const input = form.querySelector('input[type="text"]'); if (input.value.trim()) { addSubtask(taskId, input.value.trim()); input.value = ''; } } }
             async function addSubtask(taskId, subtaskText) { const task = state.localTasksCache.get(taskId); if(!task) return; const newSubtask = { text: subtaskText, completed: false }; const updatedSubtasks = [...(task.subtasks || []), newSubtask]; await updateDoc(doc(state.db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
             async function deleteSubtask(taskId, subtaskIndex) { const task = state.localTasksCache.get(taskId); if(!task) return; const updatedSubtasks = [...task.subtasks]; updatedSubtasks.splice(subtaskIndex, 1); await updateDoc(doc(state.db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
@@ -781,7 +874,7 @@
                             assignee: finalAssignee,
                             category: finalCategory,
                             createdAt: task.createdAt || serverTimestamp(),
-                            history: task.history || [{ status: task.status || STATUSES.TODO, reason: '匯入建立', timestamp: serverTimestamp(), user: state.userName }]
+                            history: task.history || [{ status: task.status || STATUSES.TODO, reason: '匯入建立', timestamp: Timestamp.now(), user: state.userName }]
                         });
                     });
                     
