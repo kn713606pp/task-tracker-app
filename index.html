@@ -138,9 +138,9 @@
     <div id="loading-overlay" class="fixed inset-0 bg-slate-50/80 backdrop-blur-sm flex items-center justify-center z-[9999] transition-opacity duration-300">...</div>
     <div id="welcome-overlay" class="fixed inset-0 bg-indigo-600 flex items-center justify-center z-[9998]">...</div>
     <div id="edit-modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 modal-overlay">
-        <div class="bg-white w-full max-w-lg rounded-xl shadow-xl">
-             <form id="edit-task-form">
-                <div class="p-6 md:p-8">
+        <div class="bg-white w-full max-w-lg rounded-xl shadow-xl flex flex-col max-h-[90vh]">
+             <form id="edit-task-form" class="flex flex-col flex-grow min-h-0">
+                <div class="p-6 md:p-8 overflow-y-auto flex-grow">
                     <h2 class="text-xl font-semibold mb-6 text-slate-800">編輯任務</h2>
                     <div class="space-y-5">
                          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -171,7 +171,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="bg-slate-50 px-6 py-4 flex justify-end items-center space-x-3 rounded-b-xl">
+                <div class="bg-slate-50 px-6 py-4 flex justify-end items-center space-x-3 rounded-b-xl flex-shrink-0">
                     <button type="button" id="cancel-edit-btn" class="px-4 py-2 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition text-sm font-semibold border border-slate-300">取消</button>
                     <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition text-sm font-semibold">儲存變更</button>
                 </div>
@@ -641,7 +641,7 @@
 
                 const taskId = taskCard.dataset.id;
                 
-                const isActionButton = target.closest('.action-menu-btn, .action-option, .edit-btn, .delete-btn, .history-btn, .inline-edit-assignee-btn, form, input, textarea, button');
+                const isActionButton = target.closest('button, a, input, textarea, form');
 
                 if (isActionButton) {
                     if (target.closest('.delete-btn')) { deleteTask(taskId); } 
@@ -650,7 +650,7 @@
                     else if (target.closest('.action-option')) { e.preventDefault(); promptForStatusChange(taskId, target.closest('.action-option').dataset.status); }
                     else if (target.closest('.history-btn')) { showHistoryModal(state.localTasksCache.get(taskId)); }
                     else if (target.closest('.inline-edit-assignee-btn')) { handleAssigneeInlineEdit(target.closest('.group'), taskId); }
-                    return; // Stop processing further for action buttons
+                    return; 
                 }
 
                 if (target.closest('.task-header')) {
@@ -666,7 +666,7 @@
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.value = currentName;
-                input.list = 'assignee-list';
+                input.setAttribute('list', 'assignee-list');
                 input.className = 'assignee-inline-input custom-input text-xs p-1 w-24';
 
                 textSpan.style.display = 'none';
@@ -679,7 +679,6 @@
                     if(newName !== currentName) {
                         await updateDoc(doc(state.db, 'tasks', taskId), { assignee: newName });
                     }
-                    // No need to manually revert, onSnapshot will re-render the card correctly
                 };
 
                 const handleKeyDown = (e) => {
@@ -694,7 +693,7 @@
                     }
                 }
 
-                input.addEventListener('blur', saveChanges);
+                input.addEventListener('blur', saveChanges, { once: true });
                 input.addEventListener('keydown', handleKeyDown);
             }
 
