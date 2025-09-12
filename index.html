@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>協作任務追蹤 App (最終修正版)</title>
+    <title>協作任務追蹤 App (排序功能版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -64,6 +64,42 @@
         .category-tab:hover .remove-category-btn {
             opacity: 1;
         }
+        
+        /* Welcome Animation */
+        #welcome-overlay {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease-out, visibility 0.5s;
+        }
+        #welcome-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .welcome-animate {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+
+        /* Priority Colors */
+        .priority-緊急 { border-color: #ef4444; }
+        .priority-高 { border-color: #f97316; }
+        .priority-中 { border-color: #3b82f6; }
+        .priority-低 { border-color: #8b5cf6; }
+
+        .priority-badge-緊急 { background-color: #fef2f2; color: #b91c1c; }
+        .priority-badge-高 { background-color: #fff7ed; color: #c2410c; }
+        .priority-badge-中 { background-color: #eff6ff; color: #1d4ed8; }
+        .priority-badge-低 { background-color: #f5f3ff; color: #6d28d9; }
+
+        /* Sort Button Active State */
+        .sort-btn.sort-active {
+            background-color: white;
+            color: #4f46e5;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -75,6 +111,14 @@
         </div>
     </div>
     
+    <div id="welcome-overlay" class="fixed inset-0 bg-indigo-600 flex items-center justify-center z-[9998]">
+        <div class="text-center text-white welcome-animate">
+            <svg class="h-16 w-16 mx-auto mb-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 12H8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 15.5V8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <h1 class="text-4xl font-bold tracking-wider">Welcome</h1>
+            <p class="text-indigo-200 mt-2">正在為您準備任務看板...</p>
+        </div>
+    </div>
+
     <div id="edit-modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 modal-overlay">
         <div class="bg-white w-full max-w-lg rounded-xl shadow-xl">
              <form id="edit-task-form">
@@ -82,6 +126,14 @@
                     <h2 class="text-xl font-semibold mb-6 text-slate-800">編輯任務</h2>
                     <div class="space-y-5">
                          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div>
+                                <label for="edit-task-priority" class="block text-sm font-medium text-slate-600 mb-1.5">優先度</label>
+                                <select id="edit-task-priority" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
+                            </div>
+                            <div>
+                                <label for="edit-task-assignee" class="block text-sm font-medium text-slate-600 mb-1.5">負責人</label>
+                                <input type="text" id="edit-task-assignee" placeholder="手動輸入..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition">
+                            </div>
                             <div>
                                 <label for="edit-task-category" class="block text-sm font-medium text-slate-600 mb-1.5">任務分類 (轉移)</label>
                                 <select id="edit-task-category" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
@@ -111,16 +163,37 @@
 
     <div id="app-container" class="hidden opacity-0 transition-opacity duration-500">
       <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
-            <header class="text-center mb-10">
+            <header class="text-center mb-6">
                 <h1 class="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight">協作任務追蹤</h1>
                 <p class="text-slate-500 mt-3 max-w-lg mx-auto">一個簡潔、高效的平台，讓您的團隊保持同步與專注。</p>
-                <div id="offline-status" class="hidden mt-4 text-sm font-semibold text-amber-800 bg-amber-100 p-3 rounded-lg flex items-center justify-center max-w-md mx-auto shadow-sm border border-amber-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.414L11 9.586V6z" clip-rule="evenodd" /></svg>您目前處於離線狀態，所有變更將在恢復連線後自動同步。</div>
+                <div id="offline-status" class="hidden mt-4 text-sm font-semibold text-amber-800 bg-amber-100 p-3 rounded-lg items-center justify-center max-w-md mx-auto shadow-sm border border-amber-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0v4a1 1 0 112 0V6zM12 14a1 1 0 10-2 0v-1a1 1 0 102 0v1z" clip-rule="evenodd"></path></svg><span id="offline-message"></span></div>
             </header>
+            
+            <div class="flex justify-center space-x-2 mb-8">
+                <button id="export-btn" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>匯出資料</button>
+                <button id="import-btn" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>匯入資料</button>
+                <input type="file" id="import-file-input" class="hidden" accept=".json">
+            </div>
 
             <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-slate-200/50 mb-10">
                 <h2 class="text-xl font-semibold mb-6 text-slate-800">新增一項任務</h2>
                 <form id="add-task-form" class="space-y-5">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                           <label for="add-task-priority" class="block text-sm font-medium text-slate-600 mb-1.5">優先度</label>
+                           <select id="add-task-priority" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
+                        </div>
+                        <div>
+                            <label for="add-task-assignee" class="block text-sm font-medium text-slate-600 mb-1.5">負責人</label>
+                            <div class="relative flex items-center">
+                                <input type="text" id="add-task-assignee" placeholder="手動輸入或語音..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition pr-10">
+                                <div class="absolute right-0 flex items-center pr-2">
+                                    <button type="button" id="voice-input-btn-assignee" class="p-2 text-slate-400 hover:text-indigo-600 rounded-md transition" title="語音輸入負責人">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm5 2a1 1 0 11-2 0V4a1 1 0 112 0v2zm-4 4a1 1 0 00-1 1v1a1 1 0 102 0v-1a1 1 0 00-1-1z" clip-rule="evenodd" /><path d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" /></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         <div>
                             <label for="add-task-category" class="block text-sm font-medium text-slate-600 mb-1.5">任務分類</label>
                             <select id="add-task-category" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
@@ -144,8 +217,8 @@
                     <div>
                         <label for="add-task-desc" class="block text-sm font-medium text-slate-600 mb-1.5">任務描述 (可選)</label>
                         <div class="relative">
-                            <textarea id="add-task-desc" rows="3" placeholder="請輸入任務描述..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition pr-28"></textarea>
-                            <div class="absolute top-2 right-0 h-full flex flex-col space-y-1 pr-2">
+                            <textarea id="add-task-desc" rows="3" placeholder="請輸入任務描述..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition pr-24"></textarea>
+                            <div class="absolute top-2 right-2 flex items-center space-x-1">
                                <button type="button" id="ai-summarize-btn" class="p-2 text-slate-400 hover:text-indigo-600 rounded-md transition cursor-not-allowed" title="AI 產生任務標題" disabled><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M15.707 4.293a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-5-5a1 1 0 111.414-1.414L10 8.586l4.293-4.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></button>
                                <button type="button" id="paste-btn-desc" class="p-2 text-slate-400 hover:text-indigo-600 rounded-md transition" title="貼上"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg></button>
                                <button type="button" id="voice-input-btn-desc" class="p-2 text-slate-400 hover:text-indigo-600 rounded-md transition" title="語音輸入"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm5 2a1 1 0 11-2 0V4a1 1 0 112 0v2zm-4 4a1 1 0 00-1 1v1a1 1 0 102 0v-1a1 1 0 00-1-1z" clip-rule="evenodd" /><path d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" /></svg></button>
@@ -155,7 +228,7 @@
                         <input type="file" id="image-input-file" class="hidden" accept="image/*">
                         <div id="image-preview-container" class="mt-2"></div>
                     </div>
-                     <p id="voice-status" class="text-sm text-center text-slate-500 h-5"></p>
+                     <p id="status-message" class="text-sm text-center text-slate-500 h-5"></p>
                     <button type="submit" class="w-full btn-primary text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-indigo-300/80">新增任務</button>
                 </form>
             </div>
@@ -183,8 +256,15 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div class="space-y-2">
-                    <h2 class="text-2xl font-bold text-slate-800 flex items-center px-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2.5 text-amber-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fill-rule="evenodd" d="M4 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h4a1 1 0 100-2H7zm0 4a1 1 0 100 2h4a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>待辦事項</h2>
-                    <div id="todo-list" class="space-y-4"></div>
+                    <div class="flex justify-between items-center px-2">
+                        <h2 class="text-2xl font-bold text-slate-800 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2.5 text-amber-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fill-rule="evenodd" d="M4 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h4a1 1 0 100-2H7zm0 4a1 1 0 100 2h4a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>待辦事項</h2>
+                        <div id="sort-controls" class="flex items-center space-x-1 bg-slate-100 p-1 rounded-lg">
+                             <button data-sort="priority" class="sort-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">優先度</button>
+                             <button data-sort="createdAt" class="sort-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors text-slate-500">建立日期</button>
+                             <button data-sort="dueDate" class="sort-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors text-slate-500">到期日期</button>
+                        </div>
+                    </div>
+                    <div id="todo-list" class="space-y-4 min-h-[150px]"></div>
                 </div>
                 <div class="space-y-2">
                      <div class="flex justify-between items-center px-2">
@@ -200,31 +280,41 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, serverTimestamp, enableIndexedDbPersistence, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, serverTimestamp, enableIndexedDbPersistence, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const firebaseConfig = { apiKey: "AIzaSyDDAYiLAtQKkusNSR6Yw54d39F7ruWfhv8", authDomain: "team-task-app-73ec0.firebaseapp.com", projectId: "team-task-app-73ec0", storageBucket: "team-task-app-73ec0.appspot.com", messagingSenderId: "544030228623", appId: "1:544030228623:web:245b75df7fc0d4301030fa" };
             
+            // --- App Configuration ---
+            const STATUSES = { TODO: "待辦事項", HOLD: "暫緩中", COMPLETED: "已完成" };
+            const CREATOR_COLORS = { "董事長": "border-rose-500", "總經理": "border-sky-500", "使用者": "border-slate-400", "未知": "border-slate-300" };
+            const PRIORITIES = { '緊急': 4, '高': 3, '中': 2, '低': 1 };
+            
+            // --- State Variables ---
             let db;
             let auth;
             let categories = [];
-            const STATUSES = { TODO: "待辦事項", HOLD: "暫緩中", COMPLETED: "已完成" };
-            const CREATOR_COLORS = { "董事長": "border-rose-500", "總經理": "border-sky-500", "使用者": "border-slate-400", "未知": "border-slate-300" };
             let activeCategory = localStorage.getItem('activeCategory') || null;
             const userName = '使用者';
-            let localTasksCache = [];
+            let localTasksCache = new Map();
             let unsubscribeTasks;
             let unsubscribeCategories;
             let currentEditingTaskId = null;
             let currentImageBase64 = null;
             let activeRecognitionTarget = null;
+            let currentSortOrder = 'priority';
 
+            // --- DOM Elements ---
             const dom = {
                 loadingOverlay: document.getElementById('loading-overlay'),
+                welcomeOverlay: document.getElementById('welcome-overlay'),
                 appContainer: document.getElementById('app-container'),
                 offlineStatus: document.getElementById('offline-status'),
+                offlineMessage: document.getElementById('offline-message'),
                 addTaskForm: document.getElementById('add-task-form'),
                 addTaskCategory: document.getElementById('add-task-category'),
+                addTaskPriority: document.getElementById('add-task-priority'),
+                addTaskAssignee: document.getElementById('add-task-assignee'),
                 addTaskTitle: document.getElementById('add-task-title'),
                 addTaskDesc: document.getElementById('add-task-desc'),
                 addTaskDueDate: document.getElementById('add-task-due-date'),
@@ -236,22 +326,28 @@
                 editModalOverlay: document.getElementById('edit-modal-overlay'),
                 editTaskForm: document.getElementById('edit-task-form'),
                 editTaskCategory: document.getElementById('edit-task-category'),
+                editTaskPriority: document.getElementById('edit-task-priority'),
+                editTaskAssignee: document.getElementById('edit-task-assignee'),
                 editTaskDueDate: document.getElementById('edit-task-due-date'),
                 editTaskTitle: document.getElementById('edit-task-title'),
                 editTaskDesc: document.getElementById('edit-task-desc'),
                 cancelEditBtn: document.getElementById('cancel-edit-btn'),
-                aiInspirationBtn: document.getElementById('ai-inspiration-btn'),
                 aiSummarizeBtn: document.getElementById('ai-summarize-btn'),
                 voiceInputBtnTitle: document.getElementById('voice-input-btn-title'),
                 voiceInputBtnDesc: document.getElementById('voice-input-btn-desc'),
+                voiceInputBtnAssignee: document.getElementById('voice-input-btn-assignee'),
                 imageInputBtn: document.getElementById('image-input-btn'),
                 imageFileInput: document.getElementById('image-input-file'),
                 imagePreviewContainer: document.getElementById('image-preview-container'),
-                voiceStatus: document.getElementById('voice-status'),
+                statusMessage: document.getElementById('status-message'),
                 pasteBtnTitle: document.getElementById('paste-btn-title'),
                 pasteBtnDesc: document.getElementById('paste-btn-desc'),
                 searchInput: document.getElementById('search-input'),
                 aiGenerateDescBtn: document.getElementById('ai-generate-desc-btn'),
+                exportBtn: document.getElementById('export-btn'),
+                importBtn: document.getElementById('import-btn'),
+                importFileInput: document.getElementById('import-file-input'),
+                sortControls: document.getElementById('sort-controls'),
             };
 
             function startApp() {
@@ -268,15 +364,28 @@
 
             function bootstrapMainApp() {
                 dom.loadingOverlay.style.display = 'none';
-                dom.appContainer.classList.remove('hidden');
-                setTimeout(() => dom.appContainer.classList.remove('opacity-0'), 50);
+                dom.welcomeOverlay.classList.add('visible');
+                populateSelects();
+
+                setTimeout(() => {
+                    dom.welcomeOverlay.classList.remove('visible');
+                    setTimeout(() => {
+                        dom.appContainer.classList.remove('hidden');
+                        dom.appContainer.classList.remove('opacity-0');
+                    }, 500);
+                }, 2000);
+                
+                updateSortButtonsUI();
                 listenForCategories();
                 listenForTasks();
                 initializeDragAndDrop();
                 bindEventListeners();
             }
-            
-            // FIX: Re-added all missing functions
+
+            function populateSelects() {
+                const priorityOptions = Object.keys(PRIORITIES).map(p => `<option value="${p}">${p}</option>`).join('');
+                [dom.addTaskPriority, dom.editTaskPriority].forEach(sel => sel.innerHTML = priorityOptions);
+            }
             
             function listenForCategories() {
                 const categoriesCollection = collection(db, 'categories');
@@ -307,16 +416,34 @@
                 const tasksCollection = collection(db, 'tasks');
                 if (unsubscribeTasks) unsubscribeTasks();
                 unsubscribeTasks = onSnapshot(tasksCollection, (snapshot) => {
-                    localTasksCache = snapshot.docs.map(doc => ({ order: Infinity, status: STATUSES.TODO, createdBy: '未知', category: categories.length > 0 ? categories[0].name : '', subtasks: [], ...doc.data(), id: doc.id }));
+                    snapshot.docChanges().forEach((change) => {
+                        const taskData = { 
+                            order: Infinity, 
+                            status: STATUSES.TODO, 
+                            createdBy: '未知', 
+                            category: categories.length > 0 ? categories[0].name : '', 
+                            priority: '中',
+                            assignee: '未指派',
+                            subtasks: [], 
+                            ...change.doc.data(), 
+                            id: change.doc.id 
+                        };
+                        if (change.type === "added" || change.type === "modified") {
+                            localTasksCache.set(taskData.id, taskData);
+                        }
+                        if (change.type === "removed") {
+                            localTasksCache.delete(change.doc.id);
+                        }
+                    });
                     renderTasks();
                 }, (error) => { console.error("監聽任務時發生錯誤:", error); showError("無法讀取雲端資料。"); });
             }
-
+            
             function renderCategoriesUI() {
                 const container = dom.categoryTabsContainer;
                 container.innerHTML = '';
                 
-                const todoCounts = localTasksCache.reduce((acc, task) => {
+                const todoCounts = Array.from(localTasksCache.values()).reduce((acc, task) => {
                     if (task.status === STATUSES.TODO || task.status === STATUSES.HOLD) {
                         acc[task.category] = (acc[task.category] || 0) + 1;
                     }
@@ -333,18 +460,13 @@
                     tabButton.dataset.category = cat.name;
                     tabButton.className = `flex-grow pl-4 pr-2 py-2 text-sm font-semibold`;
                     tabButton.innerHTML = `${cat.name} <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${cat.name === activeCategory ? 'bg-indigo-200 text-indigo-800' : 'bg-slate-200 text-slate-600'}">${count}</span>`;
-                    tabButton.addEventListener('click', (e) => { e.preventDefault(); updateActiveTab(cat.name); });
                     
                     const removeButton = document.createElement('button');
                     removeButton.className = 'remove-category-btn p-1 rounded-full hover:bg-red-200 hover:text-red-700 text-slate-400';
                     removeButton.innerHTML = `<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`;
                     removeButton.title = `移除分類 "${cat.name}"`;
-                    removeButton.addEventListener('click', async (e) => {
-                        e.stopPropagation();
-                        if (confirm(`確定要移除分類 "${cat.name}" 嗎？\n此分類下的所有任務將會被刪除。`)) {
-                            await removeCategory(cat.id, cat.name);
-                        }
-                    });
+                    removeButton.dataset.categoryId = cat.id;
+                    removeButton.dataset.categoryName = cat.name;
 
                     tabButtonWrapper.appendChild(tabButton);
                     tabButtonWrapper.appendChild(removeButton);
@@ -352,15 +474,9 @@
                 });
 
                 const addCategoryButton = document.createElement('button');
+                addCategoryButton.id = 'add-category-btn';
                 addCategoryButton.className = "ml-2 px-3 py-1.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors duration-200";
                 addCategoryButton.textContent = "+ 新增";
-                addCategoryButton.addEventListener('click', async () => {
-                    const newCategoryName = prompt("請輸入新的分類名稱：");
-                    const categoryNames = categories.map(c => c.name);
-                    if (newCategoryName && newCategoryName.trim() !== "" && !categoryNames.includes(newCategoryName.trim())) {
-                        await addDoc(collection(db, "categories"), { name: newCategoryName.trim() });
-                    }
-                });
                 container.appendChild(addCategoryButton);
 
                 [dom.addTaskCategory, dom.editTaskCategory, dom.tabsSelect].forEach(select => {
@@ -379,6 +495,33 @@
                 }
             }
             
+            async function handleCategoryActions(e) {
+                const tabLink = e.target.closest('a');
+                if (tabLink && tabLink.dataset.category) {
+                    e.preventDefault();
+                    updateActiveTab(tabLink.dataset.category);
+                    return;
+                }
+
+                const removeBtn = e.target.closest('.remove-category-btn');
+                if (removeBtn) {
+                    e.stopPropagation();
+                    const { categoryId, categoryName } = removeBtn.dataset;
+                    if (confirm(`確定要移除分類 "${categoryName}" 嗎？\n此分類下的所有任務將會被刪除。`)) {
+                        await removeCategory(categoryId, categoryName);
+                    }
+                    return;
+                }
+
+                if (e.target.id === 'add-category-btn') {
+                    const newCategoryName = prompt("請輸入新的分類名稱：");
+                    const categoryNames = categories.map(c => c.name);
+                    if (newCategoryName && newCategoryName.trim() !== "" && !categoryNames.includes(newCategoryName.trim())) {
+                        await addDoc(collection(db, "categories"), { name: newCategoryName.trim() });
+                    }
+                }
+            }
+
             async function removeCategory(categoryId, categoryName) {
                 const tasksToDeleteQuery = query(collection(db, 'tasks'), where("category", "==", categoryName));
                 const querySnapshot = await getDocs(tasksToDeleteQuery);
@@ -389,17 +532,20 @@
                 batch.delete(doc(db, 'categories', categoryId));
                 await batch.commit();
                 if (activeCategory === categoryName) {
-                    const newActive = categories.length > 1 ? categories.find(c => c.name !== categoryName).name : null;
+                    const newActive = categories.length > 1 ? categories.find(c => c.name !== categoryName)?.name : null;
                     updateActiveTab(newActive);
                 }
             }
-
 
             function initializeDragAndDrop() {
                 new Sortable(dom.todoList, {
                     animation: 150,
                     ghostClass: 'sortable-ghost',
                     onEnd: async (evt) => {
+                        // When manually reordering, switch to priority sort to reflect the new order
+                        currentSortOrder = 'priority'; 
+                        updateSortButtonsUI();
+
                         const taskElements = dom.todoList.querySelectorAll('.task-card');
                         const batch = writeBatch(db);
                         taskElements.forEach((el, index) => {
@@ -416,67 +562,120 @@
             }
 
             function renderTasks() {
-                ['todoList', 'completedList'].forEach(key => dom[key].innerHTML = '');
                 const searchTerm = dom.searchInput.value.toLowerCase();
-                
+                const allTasks = Array.from(localTasksCache.values());
+
                 const tasksToDisplay = searchTerm
-                    ? localTasksCache.filter(task => (task.title || "").toLowerCase().includes(searchTerm) || (task.description || "").toLowerCase().includes(searchTerm))
-                    : localTasksCache.filter(task => task.category === activeCategory);
+                    ? allTasks.filter(task => (task.title || "").toLowerCase().includes(searchTerm) || (task.description || "").toLowerCase().includes(searchTerm))
+                    : allTasks.filter(task => task.category === activeCategory);
                 
-                const todoTasks = tasksToDisplay.filter(t => t.status === STATUSES.TODO || t.status === STATUSES.HOLD).sort((a,b) => a.order - b.order);
-                const processedTasks = tasksToDisplay.filter(t => t.status === STATUSES.COMPLETED).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                const sorters = {
+                    priority: (a, b) => (PRIORITIES[b.priority] || 0) - (PRIORITIES[a.priority] || 0) || a.order - b.order,
+                    createdAt: (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0),
+                    dueDate: (a, b) => {
+                        const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+                        const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+                        if (dateA === Infinity && dateB === Infinity) return a.order - b.order;
+                        return dateA - dateB;
+                    }
+                };
+
+                const todoTasks = tasksToDisplay
+                    .filter(t => t.status === STATUSES.TODO || t.status === STATUSES.HOLD)
+                    .sort(sorters[currentSortOrder]);
+
+                const processedTasks = tasksToDisplay
+                    .filter(t => t.status === STATUSES.COMPLETED)
+                    .sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 
-                if (tasksToDisplay.length === 0 && !searchTerm) {
+                updateTaskListDOM(dom.todoList, todoTasks, searchTerm);
+                updateTaskListDOM(dom.completedList, processedTasks, searchTerm);
+
+                // Handle empty states
+                if (tasksToDisplay.length === 0 && !searchTerm && dom.todoList.innerHTML === '') {
                      const emptyStateHTML = `<div class="text-center p-8 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg><h3 class="mt-4 text-lg font-semibold text-slate-700">這個分類沒有任務</h3><p class="mt-1 text-sm">試著新增一項任務，或切換到其他分類吧！</p></div>`;
                      dom.todoList.innerHTML = emptyStateHTML;
-                } else {
-                     if (todoTasks.length > 0) todoTasks.forEach(task => dom.todoList.appendChild(createTaskElement(task)));
-                     else dom.todoList.innerHTML = `<div class="text-center p-8 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><h3 class="mt-4 text-lg font-semibold text-slate-700">太棒了！</h3><p class="mt-1 text-sm">${searchTerm ? '找不到符合的待辦任務。' : '所有待辦事項都已處理完畢。'}</p></div>`;
-
-                     if (processedTasks.length > 0) processedTasks.forEach(task => dom.completedList.appendChild(createTaskElement(task)));
-                     else dom.completedList.innerHTML = `<p class="text-center text-sm text-slate-500 p-4">暫無已處理的項目</p>`
+                } else if (todoTasks.length === 0 && dom.todoList.innerHTML === '') {
+                    dom.todoList.innerHTML = `<div class="text-center p-8 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><h3 class="mt-4 text-lg font-semibold text-slate-700">太棒了！</h3><p class="mt-1 text-sm">${searchTerm ? '找不到符合的待辦任務。' : '所有待辦事項都已處理完畢。'}</p></div>`;
+                }
+                
+                if (processedTasks.length === 0 && dom.completedList.innerHTML === '') {
+                    dom.completedList.innerHTML = `<p class="text-center text-sm text-slate-500 p-4">暫無已處理的項目</p>`
                 }
             }
-            
-            function highlightText(text, searchTerm) {
+
+            function updateTaskListDOM(listElement, tasks, searchTerm) {
+                // This function is now more intelligent about updates
+                const taskIdsOnScreen = new Set(Array.from(listElement.children).map(el => el.dataset.id));
+                const taskIdsFromData = new Set(tasks.map(t => t.id));
+
+                // Remove tasks that are no longer in the list
+                taskIdsOnScreen.forEach(id => {
+                    if (!taskIdsFromData.has(id)) {
+                        listElement.querySelector(`[data-id="${id}"]`)?.remove();
+                    }
+                });
+
+                // Add or update tasks
+                tasks.forEach((task, index) => {
+                    const existingEl = listElement.querySelector(`[data-id="${task.id}"]`);
+                    const newHTML = createTaskHTML(task, searchTerm);
+                    
+                    if (existingEl) {
+                        // Only update if HTML content has changed
+                        if (existingEl.innerHTML.trim() !== newHTML.trim()) {
+                            existingEl.innerHTML = newHTML;
+                        }
+                    } else {
+                        const card = document.createElement('div');
+                        card.dataset.id = task.id;
+                        card.className = `task-card bg-white p-4 rounded-lg shadow-sm border-l-4 ${CREATOR_COLORS[task.createdBy] || CREATOR_COLORS['未知']} flex flex-col priority-${task.priority}`;
+                        if (task.status === STATUSES.COMPLETED) card.classList.add('opacity-70');
+                        card.innerHTML = newHTML;
+                        listElement.appendChild(card);
+                    }
+                });
+            }
+
+             function highlightText(text, searchTerm) {
                 if (!searchTerm || !text) return text;
                 const regex = new RegExp(`(${searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
                 return text.replace(regex, `<mark>$1</mark>`);
             }
 
-            function createTaskElement(task) {
-                const card = document.createElement('div');
-                card.dataset.id = task.id;
-                const creatorColor = CREATOR_COLORS[task.createdBy] || CREATOR_COLORS['未知'];
+            function createTaskHTML(task, searchTerm) {
                 const titleText = (task.title && task.title.trim()) ? task.title : '無標題任務';
-                card.className = `task-card bg-white p-4 rounded-lg shadow-sm border-l-4 ${creatorColor} flex flex-col`;
-                if (task.status === STATUSES.COMPLETED) card.classList.add('opacity-70');
                 
                 let statusBadge = '';
-                if (task.status === STATUSES.HOLD) statusBadge = `<span class="text-xs font-semibold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">暫緩中</span>`; 
-                else if (task.status === STATUSES.COMPLETED) statusBadge = `<span class="text-xs font-semibold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">已完成</span>`; 
+                if (task.status === STATUSES.HOLD) statusBadge = `<span class="text-xs font-semibold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">暫緩中</span>`;
+                
+                const priorityBadge = `<span class="text-xs font-semibold px-2 py-0.5 rounded-full priority-badge-${task.priority}">${task.priority}</span>`;
 
                 const dueDateHTML = task.dueDate ? `<p class="text-xs text-slate-500 mt-1">截止於 ${new Date(task.dueDate).toLocaleDateString('zh-TW')}</p>` : '';
-                const imageHTML = task.imageData ? `<img src="${task.imageData}" class="mt-3 rounded-lg max-h-48 w-auto shadow-sm">` : '';
+                const imageHTML = task.imageData ? `<img src="${task.imageData}" loading="lazy" class="mt-3 rounded-lg max-h-48 w-auto shadow-sm">` : '';
 
-                const searchTerm = dom.searchInput.value;
                 const titleHTML = highlightText(titleText, searchTerm);
                 const descHTML = highlightText(task.description || '', searchTerm);
 
-                card.innerHTML = `
+                const subtasksHTML = renderSubtasks(task);
+
+                return `
                     <div class="flex-grow">
-                        <div class="flex justify-between items-start mb-2">
-                            <h3 class="font-semibold text-slate-800 pr-2">${titleHTML}</h3>
-                            ${statusBadge}
+                        <div class="flex justify-between items-start mb-2 gap-2">
+                            <h3 class="font-semibold text-slate-800 pr-2 flex-grow">${titleHTML}</h3>
+                            <div class="flex items-center flex-shrink-0 gap-2">
+                                ${priorityBadge}
+                                ${statusBadge}
+                            </div>
                         </div>
                         <p class="text-slate-600 text-sm whitespace-pre-wrap">${descHTML}</p>
                         ${imageHTML}
                     </div>
-                     <div id="subtasks-container-${task.id}" class="mt-4"></div>
+                     <div class="subtasks-container mt-4">${subtasksHTML}</div>
                     <div class="mt-3 pt-3 border-t border-slate-200/80 flex justify-between items-center text-xs">
                          <div>
-                            <p class="font-medium text-slate-500">${task.createdBy} 交辦</p>
-                            <p class="text-slate-400">${task.createdAt ? new Date(task.createdAt.seconds * 1000).toLocaleDateString() : ''}</p>
+                            <p class="font-medium text-slate-500 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd" /></svg> ${task.assignee || '未指派'}</p>
+                            <p class="text-slate-400 mt-1">由 ${task.createdBy} 於 ${task.createdAt ? new Date(task.createdAt.seconds * 1000).toLocaleDateString() : ''} 建立</p>
                             ${dueDateHTML}
                         </div>
                         <div class="relative flex items-center space-x-1">
@@ -484,26 +683,12 @@
                         </div>
                     </div>
                 `;
-                
-                renderSubtasks(task, card.querySelector(`#subtasks-container-${task.id}`));
-                card.querySelector('.delete-btn')?.addEventListener('click', () => deleteTask(task.id));
-                card.querySelector('.edit-btn')?.addEventListener('click', () => showEditModal(task));
-                card.querySelector('.action-menu-btn')?.addEventListener('click', (e) => { e.stopPropagation(); card.querySelector('.action-menu').classList.toggle('hidden'); });
-                card.querySelectorAll('.action-option').forEach(option => {
-                    option.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        updateTaskStatus(task.id, e.target.dataset.status);
-                    });
-                });
-                card.querySelector('.generate-subtasks-btn')?.addEventListener('click', (e) => handleGenerateSubtasks(e, task));
-                return card;
             }
-
+            
             function generateActionButtons(task) {
                 const editButtonHTML = `<button class="edit-btn p-1.5 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 rounded-full transition-colors" title="編輯任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>`;
                 const deleteButtonHTML = `<button class="delete-btn p-1.5 text-slate-400 hover:bg-rose-100 hover:text-rose-600 rounded-full transition-colors" title="刪除任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>`;
-                let mainAction = '';
-
+                
                 if (task.status === STATUSES.COMPLETED) {
                     return `<button class="action-option p-1.5 text-slate-400 hover:bg-amber-100 hover:text-amber-600 rounded-full transition-colors" title="復原任務" data-status="${STATUSES.TODO}"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8.707 14.707a1 1 0 01-1.414 0L4.586 12a1 1 0 111.414-1.414L8 12.586l5.293-5.293a1 1 0 111.414 1.414l-6 6z" /></svg></button>` + deleteButtonHTML;
                 }
@@ -514,7 +699,7 @@
                 } else if (task.status === STATUSES.HOLD) {
                     menuItems = `<a href="#" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 action-option" data-status="${STATUSES.TODO}">恢復處理</a>` + menuItems;
                 }
-                mainAction = `<div class="relative"><button class="action-menu-btn p-1.5 text-slate-400 hover:bg-emerald-100 hover:text-emerald-600 rounded-full transition-colors" title="操作"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg></button><div class="action-menu hidden origin-top-right absolute right-0 bottom-full mb-2 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"><div class="py-1">${menuItems}</div></div></div>`;
+                const mainAction = `<div class="relative"><button class="action-menu-btn p-1.5 text-slate-400 hover:bg-emerald-100 hover:text-emerald-600 rounded-full transition-colors" title="操作"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg></button><div class="action-menu hidden origin-top-right absolute right-0 bottom-full mb-2 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"><div class="py-1">${menuItems}</div></div></div>`;
                 
                 return mainAction + editButtonHTML + deleteButtonHTML;
             }
@@ -526,12 +711,19 @@
                 dom.cancelEditBtn.addEventListener('click', hideEditModal);
                 dom.searchInput.addEventListener('input', renderTasks);
                 dom.clearCompletedBtn.addEventListener('click', clearCompletedTasks);
-                document.body.addEventListener('click', (e) => {
-                    if (!e.target.closest('.action-menu-btn')) {
-                        document.querySelectorAll('.action-menu').forEach(menu => menu.classList.add('hidden'));
-                    }
-                });
                 
+                document.body.addEventListener('click', handleGeneralClicks);
+                dom.todoList.addEventListener('submit', handleSubtaskForms);
+                dom.todoList.addEventListener('change', handleSubtaskForms);
+                dom.completedList.addEventListener('change', handleSubtaskForms);
+                dom.categoryTabsContainer.addEventListener('click', handleCategoryActions);
+                
+                dom.exportBtn.addEventListener('click', handleExport);
+                dom.importBtn.addEventListener('click', () => dom.importFileInput.click());
+                dom.importFileInput.addEventListener('change', handleImport);
+
+                dom.sortControls.addEventListener('click', handleSortClick);
+
                 dom.aiGenerateDescBtn.addEventListener('click', handleAiGenerateDesc);
                 dom.aiSummarizeBtn.addEventListener('click', handleAiSummarize);
                 dom.addTaskDesc.addEventListener('input', updateAiSummarizeBtnState);
@@ -539,67 +731,219 @@
                 dom.imageFileInput.addEventListener('change', handleImageUpload);
                 dom.pasteBtnTitle.addEventListener('click', () => handlePaste(dom.addTaskTitle));
                 dom.pasteBtnDesc.addEventListener('click', () => handlePaste(dom.addTaskDesc));
+                
+                window.addEventListener('online', () => updateOnlineStatus(true));
+                window.addEventListener('offline', () => updateOnlineStatus(false));
+                updateOnlineStatus(navigator.onLine);
+
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SpeechRecognition) {
                     const recognition = new SpeechRecognition();
                     recognition.continuous = false; recognition.lang = 'zh-TW'; recognition.interimResults = false;
-                    recognition.onstart = () => { dom.voiceStatus.textContent = '正在聆聽...'; };
+                    recognition.onstart = () => { showStatusMessage('正在聆聽...'); };
                     recognition.onresult = (event) => { if (activeRecognitionTarget) { activeRecognitionTarget.value += event.results[0][0].transcript; if (activeRecognitionTarget === dom.addTaskDesc) updateAiSummarizeBtnState(); } };
-                    recognition.onerror = () => { dom.voiceStatus.textContent = '語音辨識錯誤'; };
-                    recognition.onend = () => { dom.voiceStatus.textContent = ''; activeRecognitionTarget = null; };
+                    recognition.onerror = () => { showStatusMessage('語音辨識錯誤', true); };
+                    recognition.onend = () => { setTimeout(() => showStatusMessage(''), 2000); activeRecognitionTarget = null; };
                     
                     const setupRecognition = (target) => { activeRecognitionTarget = target; recognition.start(); };
                     dom.voiceInputBtnTitle.addEventListener('click', () => setupRecognition(dom.addTaskTitle));
                     dom.voiceInputBtnDesc.addEventListener('click', () => setupRecognition(dom.addTaskDesc));
+                    dom.voiceInputBtnAssignee.addEventListener('click', () => setupRecognition(dom.addTaskAssignee));
+                }
+            }
+
+            function handleGeneralClicks(e) {
+                const target = e.target;
+                const taskCard = target.closest('.task-card');
+                if (!taskCard) {
+                    if (!target.closest('.action-menu-btn')) {
+                        document.querySelectorAll('.action-menu').forEach(menu => menu.classList.add('hidden'));
+                    }
+                    return;
+                }
+                const taskId = taskCard.dataset.id;
+                
+                if (target.closest('.delete-btn')) deleteTask(taskId);
+                else if (target.closest('.edit-btn')) showEditModal(localTasksCache.get(taskId));
+                else if (target.closest('.action-menu-btn')) {
+                    e.stopPropagation();
+                    taskCard.querySelector('.action-menu').classList.toggle('hidden');
+                } else if (target.closest('.action-option')) {
+                    e.preventDefault();
+                    updateTaskStatus(taskId, target.closest('.action-option').dataset.status);
+                } else if (target.closest('.generate-subtasks-btn')) {
+                    handleGenerateSubtasks(e, localTasksCache.get(taskId));
+                } else if (target.closest('.delete-subtask-btn')) {
+                    deleteSubtask(taskId, parseInt(target.closest('li').dataset.index));
                 }
             }
             
-            async function handleAddTask(e) { e.preventDefault(); const newOrder = dom.todoList.querySelectorAll('.task-card').length; const newTask = { title: dom.addTaskTitle.value, description: dom.addTaskDesc.value, dueDate: dom.addTaskDueDate.value, createdAt: serverTimestamp(), category: dom.addTaskCategory.value, createdBy: userName, status: STATUSES.TODO, order: newOrder, imageData: currentImageBase64, subtasks: [] }; try { await addDoc(collection(db, 'tasks'), newTask); dom.addTaskForm.reset(); dom.addTaskCategory.value = activeCategory; dom.imagePreviewContainer.innerHTML = ''; currentImageBase64 = null; updateAiSummarizeBtnState();} catch (error) { console.error("新增任務失敗:", error); } }
+            async function handleAddTask(e) {
+                e.preventDefault();
+                const newOrder = dom.todoList.querySelectorAll('.task-card').length;
+                const newTask = {
+                    title: dom.addTaskTitle.value,
+                    description: dom.addTaskDesc.value,
+                    dueDate: dom.addTaskDueDate.value,
+                    createdAt: serverTimestamp(),
+                    category: dom.addTaskCategory.value,
+                    createdBy: userName,
+                    status: STATUSES.TODO,
+                    order: newOrder,
+                    imageData: currentImageBase64,
+                    subtasks: [],
+                    priority: dom.addTaskPriority.value,
+                    assignee: dom.addTaskAssignee.value.trim() || '未指派',
+                };
+                try {
+                    await addDoc(collection(db, 'tasks'), newTask);
+                    dom.addTaskForm.reset();
+                    dom.addTaskCategory.value = activeCategory;
+                    dom.imagePreviewContainer.innerHTML = '';
+                    currentImageBase64 = null;
+                    updateAiSummarizeBtnState();
+                } catch (error) {
+                    console.error("新增任務失敗:", error);
+                }
+            }
+
             async function updateTaskStatus(id, newStatus) { await updateDoc(doc(db, 'tasks', id), { status: newStatus }); }
-            async function deleteTask(id) { if (!id) return; await deleteDoc(doc(db, 'tasks', id)); }
+            async function deleteTask(id) { if (!id) return; if(confirm("確定要刪除這個任務嗎？")) { await deleteDoc(doc(db, 'tasks', id)); } }
             
-            function showEditModal(task) { currentEditingTaskId = task.id; dom.editTaskTitle.value = task.title || ''; dom.editTaskDesc.value = task.description || ''; dom.editTaskDueDate.value = task.dueDate || ''; dom.editTaskCategory.value = task.category || categories[0]; dom.editModalOverlay.classList.remove('hidden'); dom.editModalOverlay.classList.add('flex'); }
+            function showEditModal(task) {
+                if(!task) return;
+                currentEditingTaskId = task.id;
+                dom.editTaskTitle.value = task.title || '';
+                dom.editTaskDesc.value = task.description || '';
+                dom.editTaskDueDate.value = task.dueDate || '';
+                dom.editTaskCategory.value = task.category || categories[0].name;
+                dom.editTaskPriority.value = task.priority || '中';
+                dom.editTaskAssignee.value = task.assignee || '';
+                dom.editModalOverlay.classList.remove('hidden');
+                dom.editModalOverlay.classList.add('flex');
+            }
+
             function hideEditModal() { currentEditingTaskId = null; dom.editModalOverlay.classList.add('hidden'); dom.editModalOverlay.classList.remove('flex'); }
             
-            async function handleUpdateTask(e) { e.preventDefault(); if (!currentEditingTaskId) return; const updatedData = { title: dom.editTaskTitle.value, description: dom.editTaskDesc.value, dueDate: dom.editTaskDueDate.value, category: dom.editTaskCategory.value }; try { await updateDoc(doc(db, 'tasks', currentEditingTaskId), updatedData); hideEditModal(); } catch (error) { console.error("更新任務失敗:", error); } }
-            function updateActiveTab(newCategory) { activeCategory = newCategory; localStorage.setItem('activeCategory', activeCategory); dom.categoryTabsContainer.querySelectorAll('a').forEach(tab => { tab.classList.toggle('tab-active', tab.dataset.category === activeCategory); tab.classList.toggle('tab-inactive', tab.dataset.category !== activeCategory); }); dom.tabsSelect.value = activeCategory; renderTasks(); }
-            function showError(message) { dom.loadingOverlay.innerHTML = `<div class="text-center text-red-700 bg-red-100 p-4 rounded-lg"><h3>錯誤</h3><p>${message}</p></div>`; dom.loadingOverlay.style.display = 'flex'; }
-            
-            function renderSubtasks(task, container) {
-                if (!container) return; container.innerHTML = '';
-                if (task.subtasks && task.subtasks.length > 0) {
-                    container.innerHTML = '<h4 class="text-sm font-semibold mb-2 text-slate-600">子任務：</h4>';
-                    const ul = document.createElement('ul'); ul.className = 'space-y-2 pl-1 mb-3';
-                    task.subtasks.forEach((subtask, index) => {
-                        const li = document.createElement('li'); li.className = 'flex items-center justify-between group';
-                        li.innerHTML = `<div class="flex items-center flex-grow"><input type="checkbox" id="subtask-${task.id}-${index}" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" ${subtask.completed ? 'checked' : ''}><label for="subtask-${task.id}-${index}" class="ml-3 block text-sm text-slate-700 ${subtask.completed ? 'line-through text-slate-400' : ''}">${subtask.text}</label></div><button class="delete-subtask-btn text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition px-2" title="刪除子任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>`;
-                        li.querySelector('input[type="checkbox"]').addEventListener('change', () => toggleSubtaskCompletion(task.id, index));
-                        li.querySelector('.delete-subtask-btn').addEventListener('click', () => deleteSubtask(task.id, index));
-                        ul.appendChild(li);
-                    }); container.appendChild(ul);
-                }
-                if (task.status !== STATUSES.COMPLETED) {
-                    const addSubtaskForm = document.createElement('form'); addSubtaskForm.className = 'mt-2 flex items-center space-x-2';
-                    addSubtaskForm.innerHTML = `<input type="text" placeholder="新增子任務..." class="flex-grow w-full text-sm px-3 py-1.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"><button type="submit" class="text-sm bg-slate-200 text-slate-600 font-semibold py-1.5 px-3 rounded-md hover:bg-slate-300 transition flex-shrink-0">新增</button><button type="button" class="generate-subtasks-btn p-1.5 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 rounded-full transition-colors" title="AI 產生子任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg></button>`;
-                    const input = addSubtaskForm.querySelector('input');
-                    addSubtaskForm.addEventListener('submit', (e) => { e.preventDefault(); if (input.value.trim()) { addSubtask(task.id, input.value.trim()); input.value = ''; } });
-                    container.appendChild(addSubtaskForm);
+            async function handleUpdateTask(e) {
+                e.preventDefault();
+                if (!currentEditingTaskId) return;
+                const updatedData = {
+                    title: dom.editTaskTitle.value,
+                    description: dom.editTaskDesc.value,
+                    dueDate: dom.editTaskDueDate.value,
+                    category: dom.editTaskCategory.value,
+                    priority: dom.editTaskPriority.value,
+                    assignee: dom.editTaskAssignee.value.trim() || '未指派',
+                };
+                try {
+                    await updateDoc(doc(db, 'tasks', currentEditingTaskId), updatedData);
+                    hideEditModal();
+                } catch (error) {
+                    console.error("更新任務失敗:", error);
                 }
             }
-            async function addSubtask(taskId, subtaskText) { const task = localTasksCache.find(t => t.id === taskId); const newSubtask = { text: subtaskText, completed: false }; const updatedSubtasks = [...(task.subtasks || []), newSubtask]; await updateDoc(doc(db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
-            async function deleteSubtask(taskId, subtaskIndex) { const task = localTasksCache.find(t => t.id === taskId); const updatedSubtasks = [...task.subtasks]; updatedSubtasks.splice(subtaskIndex, 1); await updateDoc(doc(db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
-            async function toggleSubtaskCompletion(taskId, subtaskIndex) { const task = localTasksCache.find(t => t.id === taskId); const updatedSubtasks = [...task.subtasks]; updatedSubtasks[subtaskIndex].completed = !updatedSubtasks[subtaskIndex].completed; await updateDoc(doc(db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
+            
+            function updateActiveTab(newCategory) { activeCategory = newCategory; localStorage.setItem('activeCategory', newCategory); renderCategoriesUI(); renderTasks(); }
+            function showError(message) { dom.loadingOverlay.innerHTML = `<div class="text-center text-red-700 bg-red-100 p-4 rounded-lg"><h3>錯誤</h3><p>${message}</p></div>`; dom.loadingOverlay.style.display = 'flex'; }
+            function renderSubtasks(task) { let html = ''; if (task.subtasks && task.subtasks.length > 0) { html += '<h4 class="text-sm font-semibold mb-2 text-slate-600">子任務：</h4><ul class="space-y-2 pl-1 mb-3">'; task.subtasks.forEach((subtask, index) => { html += `<li class="flex items-center justify-between group" data-index="${index}"><div class="flex items-center flex-grow"><input type="checkbox" id="subtask-${task.id}-${index}" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" ${subtask.completed ? 'checked' : ''}><label for="subtask-${task.id}-${index}" class="ml-3 block text-sm text-slate-700 ${subtask.completed ? 'line-through text-slate-400' : ''}">${subtask.text}</label></div><button class="delete-subtask-btn text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition px-2" title="刪除子任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button></li>`; }); html += '</ul>'; } if (task.status !== STATUSES.COMPLETED) { html += `<form class="add-subtask-form mt-2 flex items-center space-x-2"><input type="text" placeholder="新增子任務..." class="flex-grow w-full text-sm px-3 py-1.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"><button type="submit" class="text-sm bg-slate-200 text-slate-600 font-semibold py-1.5 px-3 rounded-md hover:bg-slate-300 transition flex-shrink-0">新增</button><button type="button" class="generate-subtasks-btn p-1.5 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 rounded-full transition-colors" title="AI 產生子任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg></button></form>`; } return html; }
+            function handleSubtaskForms(e) { const taskCard = e.target.closest('.task-card'); if (!taskCard) return; const taskId = taskCard.dataset.id; if (e.target.matches('input[type="checkbox"]')) { const subtaskIndex = parseInt(e.target.closest('li').dataset.index); toggleSubtaskCompletion(taskId, subtaskIndex); } else if (e.target.closest('.add-subtask-form')) { e.preventDefault(); const form = e.target.closest('.add-subtask-form'); const input = form.querySelector('input[type="text"]'); if (input.value.trim()) { addSubtask(taskId, input.value.trim()); input.value = ''; } } }
+            async function addSubtask(taskId, subtaskText) { const task = localTasksCache.get(taskId); if(!task) return; const newSubtask = { text: subtaskText, completed: false }; const updatedSubtasks = [...(task.subtasks || []), newSubtask]; await updateDoc(doc(db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
+            async function deleteSubtask(taskId, subtaskIndex) { const task = localTasksCache.get(taskId); if(!task) return; const updatedSubtasks = [...task.subtasks]; updatedSubtasks.splice(subtaskIndex, 1); await updateDoc(doc(db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
+            async function toggleSubtaskCompletion(taskId, subtaskIndex) { const task = localTasksCache.get(taskId); if(!task) return; const updatedSubtasks = [...task.subtasks]; updatedSubtasks[subtaskIndex].completed = !updatedSubtasks[subtaskIndex].completed; await updateDoc(doc(db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
             function updateAiSummarizeBtnState() { const enabled = dom.addTaskDesc.value.trim() !== ''; dom.aiSummarizeBtn.disabled = !enabled; dom.aiSummarizeBtn.classList.toggle('cursor-not-allowed', !enabled); dom.aiSummarizeBtn.classList.toggle('ai-btn-enabled', enabled); }
             function handleImageUpload(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { currentImageBase64 = e.target.result; displayImagePreview(currentImageBase64); generateDescriptionFromImage(currentImageBase64); }; reader.readAsDataURL(file); }
             function displayImagePreview(base64) { dom.imagePreviewContainer.innerHTML = `<div class="relative inline-block group"><img src="${base64}" class="h-24 w-auto rounded-lg shadow-md"><button type="button" class="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition">&times;</button></div>`; dom.imagePreviewContainer.querySelector('button').addEventListener('click', () => { currentImageBase64 = null; dom.imagePreviewContainer.innerHTML = ''; dom.imageFileInput.value = ''; }); }
             async function handlePaste(targetInput) { try { const text = await navigator.clipboard.readText(); targetInput.value = text; if (targetInput === dom.addTaskDesc) updateAiSummarizeBtnState(); } catch (error) { console.error('貼上失敗:', error); } }
-            async function callGemini(payload) { const apiKey = ""; const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`; try { const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (!response.ok) throw new Error(`API 請求失敗: ${response.status}`); return await response.json(); } catch (error) { console.error('Gemini API 呼叫失敗:', error); dom.voiceStatus.textContent = 'AI 功能暫時無法使用。'; setTimeout(() => dom.voiceStatus.textContent = '', 3000); return null; } }
-            async function handleAiInspiration(e) { /* AI Logic */ }
-            async function handleAiGenerateDesc(e) { /* AI Logic */ }
-            async function handleAiSummarize(e) { /* AI Logic */ }
-            async function generateDescriptionFromImage(base64Data) { /* AI Logic */ }
-            async function handleGenerateSubtasks(e, task) { /* AI Logic */ }
-            async function clearCompletedTasks() { const q = query(collection(db, 'tasks'), where("status", "==", STATUSES.COMPLETED), where("category", "==", activeCategory)); const querySnapshot = await getDocs(q); const batch = writeBatch(db); querySnapshot.forEach(doc => batch.delete(doc.ref)); await batch.commit(); }
+            async function callGemini(payload) { const apiKey = ""; const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`; try { const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (!response.ok) throw new Error(`API 請求失敗: ${response.status}`); const data = await response.json(); return data.candidates?.[0]?.content?.parts?.[0]?.text || null; } catch (error) { console.error('Gemini API 呼叫失敗:', error); showStatusMessage('AI 功能暫時無法使用。', true); return null; } }
+            async function handleAiGenerateDesc(e) { const button = e.currentTarget; const title = dom.addTaskTitle.value; if (!title.trim()) { showStatusMessage('請先輸入任務標題', true); return; } button.disabled = true; showStatusMessage('AI 正在產生描述...'); const prompt = `你是一個專案管理助理，請根據以下任務標題，產生一份簡潔、專業的任務描述，使用繁體中文。任務標題： "${title}"`; const result = await callGemini({ contents: [{ parts: [{ text: prompt }] }] }); if (result) { dom.addTaskDesc.value = result.trim(); updateAiSummarizeBtnState(); showStatusMessage('AI 描述已產生！'); } button.disabled = false; }
+            async function handleAiSummarize(e) { const button = e.currentTarget; const description = dom.addTaskDesc.value; if (!description.trim()) return; button.disabled = true; showStatusMessage('AI 正在總結標題...'); const prompt = `請將以下任務描述總結成一個不超過 15 個字的精簡標題，使用繁體中文。任務描述： "${description}"`; const result = await callGemini({ contents: [{ parts: [{ text: prompt }] }] }); if (result) { dom.addTaskTitle.value = result.replace(/["'「」]/g, '').trim(); showStatusMessage('AI 標題已產生！'); } button.disabled = false; }
+            async function generateDescriptionFromImage(base64Data) { showStatusMessage('AI 正在分析圖片...'); const payload = { contents: [{ parts: [{ text: "請根據這張圖片，用繁體中文產生一段簡短的任務描述。" }, { inlineData: { mimeType: "image/png", data: base64Data.split(',')[1] } }] }] }; const result = await callGemini(payload); if (result) { dom.addTaskDesc.value = result.trim(); updateAiSummarizeBtnState(); showStatusMessage('已根據圖片產生描述！'); } }
+            async function handleGenerateSubtasks(e, task) { const button = e.currentTarget; if (!task.title) { showStatusMessage('任務需要標題才能產生子任務', true); return; } button.disabled = true; const spinner = `<svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`; const originalContent = button.innerHTML; button.innerHTML = spinner; const prompt = `你是一個專案管理助理。根據以下主要任務，請將其拆解成 3 到 5 個具體的、可操作的子任務。請僅回傳一個 JSON 格式的陣列，例如：["子任務一", "子任務二"]。\n\n主要任務標題：${task.title}\n主要任務描述：${task.description || '(無描述)'}`; const result = await callGemini({ contents: [{ parts: [{ text: prompt }] }] }); if (result) { try { const subtaskTexts = JSON.parse(result); if (Array.isArray(subtaskTexts)) { const newSubtasks = subtaskTexts.map(text => ({ text, completed: false })); const updatedSubtasks = [...(task.subtasks || []), ...newSubtasks]; await updateDoc(doc(db, 'tasks', task.id), { subtasks: updatedSubtasks }); } } catch (err) { console.error("解析 AI 子任務失敗:", err); showStatusMessage('AI 回應格式錯誤', true); } } button.innerHTML = originalContent; button.disabled = false; }
+            async function clearCompletedTasks() { const q = query(collection(db, 'tasks'), where("status", "==", STATUSES.COMPLETED), where("category", "==", activeCategory)); const querySnapshot = await getDocs(q); if (querySnapshot.empty) return; if (!confirm(`確定要清除 "${activeCategory}" 分類中所有已處理的任務嗎？`)) return; const batch = writeBatch(db); querySnapshot.forEach(doc => batch.delete(doc.ref)); await batch.commit(); }
+            function showStatusMessage(message, isError = false) { dom.statusMessage.textContent = message; dom.statusMessage.className = `text-sm text-center h-5 ${isError ? 'text-red-600' : 'text-slate-500'}`; if (message) { setTimeout(() => { if (dom.statusMessage.textContent === message) { dom.statusMessage.textContent = ''; } }, 4000); } }
+            function updateOnlineStatus(isOnline) { if (isOnline) { dom.offlineStatus.classList.add('hidden'); dom.offlineStatus.classList.remove('flex'); } else { dom.offlineMessage.textContent = '您目前處於離線狀態，所有變更將在恢復連線後自動同步。'; dom.offlineStatus.classList.remove('hidden'); dom.offlineStatus.classList.add('flex'); } }
+
+            function handleSortClick(e) {
+                const button = e.target.closest('.sort-btn');
+                if (!button) return;
+                currentSortOrder = button.dataset.sort;
+                updateSortButtonsUI();
+                renderTasks();
+            }
+
+            function updateSortButtonsUI() {
+                dom.sortControls.querySelectorAll('.sort-btn').forEach(btn => {
+                    const isSelected = btn.dataset.sort === currentSortOrder;
+                    btn.classList.toggle('sort-active', isSelected);
+                    btn.classList.toggle('text-slate-500', !isSelected);
+                });
+            }
+
+            function handleExport() {
+                const dataToExport = {
+                    categories: categories,
+                    tasks: Array.from(localTasksCache.values()).map(task => {
+                        if (task.createdAt && task.createdAt.toDate) {
+                            return { ...task, createdAt: task.createdAt.toDate().toISOString() };
+                        }
+                        return task;
+                    }),
+                };
+                const dataStr = JSON.stringify(dataToExport, null, 2);
+                const blob = new Blob([dataStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tasks-backup-${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showStatusMessage('資料已成功匯出！');
+            }
+
+            async function handleImport(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (!data.tasks || !Array.isArray(data.tasks)) {
+                            throw new Error('無效的檔案格式：缺少 "tasks" 陣列。');
+                        }
+                        
+                        if (!confirm(`您確定要匯入 ${data.tasks.length} 個任務嗎？這將會新增到您現有的任務列表中。`)) {
+                            dom.importFileInput.value = '';
+                            return;
+                        }
+                        
+                        showStatusMessage(`正在匯入 ${data.tasks.length} 個任務...`);
+
+                        const batch = writeBatch(db);
+                        data.tasks.forEach(task => {
+                            const newDocRef = doc(collection(db, 'tasks'));
+                            if (task.createdAt && typeof task.createdAt === 'string') {
+                                task.createdAt = Timestamp.fromDate(new Date(task.createdAt));
+                            }
+                            delete task.id;
+                            batch.set(newDocRef, task);
+                        });
+
+                        await batch.commit();
+                        showStatusMessage('任務匯入成功！');
+
+                    } catch (error) {
+                        console.error("匯入失敗:", error);
+                        showStatusMessage(`匯入失敗: ${error.message}`, true);
+                    } finally {
+                         dom.importFileInput.value = '';
+                    }
+                };
+                reader.readAsText(file);
+            }
 
             startApp();
         });
