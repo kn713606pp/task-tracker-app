@@ -97,17 +97,6 @@
             --tw-ring-color: #34d399 !important; /* emerald-400 */
             border-color: #10b981 !important; /* emerald-500 */
         }
-        .category-edit-input {
-            background-color: #f0fdf4;
-            border-color: #10b981;
-            width: 120px;
-            padding: 6px 8px;
-            border-radius: 5px;
-            border-width: 1px;
-            outline: none;
-            font-size: 14px;
-            font-weight: 600;
-        }
         #undo-bar {
             transform: translateY(120%);
             transition: transform 0.4s ease-in-out;
@@ -134,7 +123,6 @@
     </style>
 </head>
 <body class="antialiased">
-    <!-- Modals -->
     <div id="loading-overlay" class="fixed inset-0 bg-slate-50/80 backdrop-blur-sm flex items-center justify-center z-[9999] transition-opacity duration-300">...</div>
     <div id="welcome-overlay" class="fixed inset-0 bg-indigo-600 flex items-center justify-center z-[9998]">...</div>
     <div id="edit-modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 modal-overlay">
@@ -154,7 +142,12 @@
                             </div>
                             <div>
                                 <label for="edit-task-category" class="block text-sm font-medium text-slate-600 mb-1.5">任務分類 (轉移)</label>
-                                <select id="edit-task-category" class="custom-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
+                                <div class="flex items-center space-x-2">
+                                    <select id="edit-task-category" class="custom-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
+                                    <button type="button" id="edit-category-name-btn" title="編輯目前分類名稱" class="p-2.5 text-slate-500 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-100 rounded-lg transition-colors flex-shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
+                                    </button>
+                                </div>
                             </div>
                              <div>
                                 <label for="edit-task-due-date" class="block text-sm font-medium text-slate-600 mb-1.5">截止日期</label>
@@ -180,17 +173,21 @@
     </div>
     
     <div id="import-modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 modal-overlay">
-        <div class="bg-white w-full max-w-xl rounded-xl shadow-xl">
-             <div class="p-6 md:p-8">
+        <div class="bg-white w-full max-w-xl rounded-xl shadow-xl flex flex-col max-h-[90vh]">
+             <div class="p-6 md:p-8 flex-grow overflow-y-auto">
                 <h2 class="text-xl font-semibold mb-4 text-slate-800">匯入任務</h2>
                 <p class="text-sm text-slate-500 mb-6">請將從 AI 助理取得的 JSON 文字內容直接貼到下方文字框中，並選擇要匯入的目標分類。</p>
                 <div class="mb-4">
                     <label for="import-task-category" class="block text-sm font-medium text-slate-600 mb-1.5">匯入至分類</label>
-                    <select id="import-task-category" class="custom-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
+                    <div class="flex items-center space-x-2">
+                        <select id="import-task-category" class="custom-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
+                        <button type="button" id="add-category-from-import-btn" class="px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors flex-shrink-0">+ 新增</button>
+                    </div>
                 </div>
                 <textarea id="import-textarea" rows="8" placeholder="貼上 JSON 內容..." class="custom-input w-full p-4 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></textarea>
+                <p id="import-status-message" class="text-sm text-center text-red-600 h-5 mt-2"></p>
             </div>
-            <div class="bg-slate-50 px-6 py-4 flex justify-end items-center space-x-3 rounded-b-xl">
+            <div class="bg-slate-50 px-6 py-4 flex justify-end items-center space-x-3 rounded-b-xl flex-shrink-0">
                 <button type="button" id="cancel-import-btn" class="px-4 py-2 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition text-sm font-semibold border border-slate-300">取消</button>
                 <button type="button" id="confirm-import-btn" class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition text-sm font-semibold">確認匯入</button>
             </div>
@@ -225,7 +222,6 @@
         </div>
     </div>
 
-    <!-- Main App Container -->
     <div id="app-container" class="hidden opacity-0 transition-opacity duration-500">
       <datalist id="assignee-list"></datalist>
       <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
@@ -347,8 +343,7 @@
                     <div id="completed-list" class="space-y-4"></div>
                 </div>
             </div>
-             <!-- Trash Section -->
-            <div id="trash-section" class="mt-12">
+             <div id="trash-section" class="mt-12">
                 <button id="toggle-trash-btn" class="w-full flex justify-between items-center p-4 bg-white rounded-lg shadow-sm border text-left">
                     <span class="font-semibold text-slate-700 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>垃圾桶</span>
                     <svg id="trash-arrow" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
@@ -360,7 +355,6 @@
       </div>
     </div>
     
-    <!-- Undo Bar -->
     <div id="undo-bar" class="fixed bottom-5 left-1/2 -translate-x-1/2 w-auto bg-slate-800 text-white py-3 px-6 rounded-full shadow-lg flex items-center justify-center z-[100]">
         <span id="undo-message" class="text-sm"></span>
         <button id="undo-btn" class="ml-4 text-sm font-semibold text-indigo-300 hover:text-indigo-200">復原</button>
@@ -414,6 +408,7 @@
                 editModalOverlay: document.getElementById('edit-modal-overlay'),
                 editTaskForm: document.getElementById('edit-task-form'),
                 editTaskCategory: document.getElementById('edit-task-category'),
+                editCategoryNameBtn: document.getElementById('edit-category-name-btn'),
                 editTaskPriority: document.getElementById('edit-task-priority'),
                 editTaskAssignee: document.getElementById('edit-task-assignee'),
                 editTaskDueDate: document.getElementById('edit-task-due-date'),
@@ -441,6 +436,8 @@
                 importTaskCategory: document.getElementById('import-task-category'),
                 cancelImportBtn: document.getElementById('cancel-import-btn'),
                 confirmImportBtn: document.getElementById('confirm-import-btn'),
+                addCategoryFromImportBtn: document.getElementById('add-category-from-import-btn'),
+                importStatusMessage: document.getElementById('import-status-message'),
                 statusReasonModal: document.getElementById('status-reason-modal-overlay'),
                 statusReasonForm: document.getElementById('status-reason-form'),
                 statusReasonInput: document.getElementById('status-reason-input'),
@@ -491,7 +488,7 @@
             }
             function highlightText(text, searchTerm) { if (!searchTerm || !text) return text; const regex = new RegExp(`(${searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'); return text.replace(regex, `<mark>$1</mark>`); }
 
-            function listenForCategories() { const categoriesCollection = collection(state.db, 'categories'); if(unsubscribeCategories) unsubscribeCategories(); unsubscribeCategories = onSnapshot(query(categoriesCollection), (snapshot) => { if (snapshot.empty) { const defaultCategories = ["董總交辦", "行政管理", "運籌管理", "有機植萃", "品質管理"]; const batch = writeBatch(state.db); defaultCategories.forEach(name => { const docRef = doc(collection(state.db, "categories")); batch.set(docRef, { name }); }); batch.commit(); return; } state.categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); const categoryNames = state.categories.map(c => c.name); if (state.activeCategory !== ALL_TASKS_VIEW && !categoryNames.includes(state.activeCategory)) { state.activeCategory = ALL_TASKS_VIEW; localStorage.setItem('activeCategory', state.activeCategory); } renderCategoriesUI(); renderTasksAndTrash(); }); }
+            function listenForCategories() { const categoriesCollection = collection(state.db, 'categories'); if(unsubscribeCategories) unsubscribeCategories(); unsubscribeCategories = onSnapshot(query(categoriesCollection), (snapshot) => { if (snapshot.empty) { const defaultCategories = ["董總交辦", "行政管理", "運籌管理", "有機植萃", "品質管理"]; const batch = writeBatch(state.db); defaultCategories.forEach(name => { const docRef = doc(collection(state.db, "categories")); batch.set(docRef, { name }); }); batch.commit(); return; } state.categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); const categoryNames = state.categories.map(c => c.name); if (state.activeCategory !== ALL_TASKS_VIEW && !categoryNames.includes(state.activeCategory)) { state.activeCategory = ALL_TASKS_VIEW; localStorage.setItem('activeCategory', state.activeCategory); } renderCategoriesUI(); refreshAllCategorySelects(); renderTasksAndTrash(); }); }
             
             function listenForTasks() { 
                 const tasksCollection = collection(state.db, 'tasks'); 
@@ -573,15 +570,26 @@
                 addCategoryButton.className = "ml-2 px-3 py-1.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors duration-200"; 
                 addCategoryButton.textContent = "+ 新增"; 
                 container.appendChild(addCategoryButton); 
-                
-                const selectOptionsHTML = state.categories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join(''); 
-                [dom.addTaskCategory, dom.editTaskCategory].forEach(select => { if (select) select.innerHTML = selectOptionsHTML; }); 
-                if(state.activeCategory && state.activeCategory !== ALL_TASKS_VIEW) { dom.addTaskCategory.value = state.activeCategory; } 
-                else if (state.categories.length > 0) { dom.addTaskCategory.value = state.categories[0].name; } 
             }
+            
+            function refreshAllCategorySelects(selectedValue) {
+                const selectOptionsHTML = state.categories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
+                [dom.addTaskCategory, dom.editTaskCategory].forEach(select => {
+                    if (select) {
+                        const currentVal = select.value;
+                        select.innerHTML = selectOptionsHTML;
+                        select.value = selectedValue || currentVal;
+                    }
+                });
+                if(dom.importTaskCategory) {
+                    const currentVal = dom.importTaskCategory.value;
+                    dom.importTaskCategory.innerHTML = '<option value="__AUTO__">自動 (依檔案設定)</option>' + selectOptionsHTML;
+                    dom.importTaskCategory.value = selectedValue || currentVal;
+                }
+            }
+
             function renderAssigneeDatalist(assignees) { dom.assigneeDatalist.innerHTML = Array.from(assignees).map(name => `<option value="${name}"></option>`).join(''); }
             
-
             function renderTasksAndTrash() { const allTasks = Array.from(state.localTasksCache.values()); const activeTasks = allTasks.filter(t => t.status !== STATUSES.DELETED); const deletedTasks = allTasks.filter(t => t.status === STATUSES.DELETED); renderTasks(activeTasks); renderTrash(deletedTasks); }
             function renderTasks(tasksToRender) { dom.todoList.innerHTML = ''; dom.completedList.innerHTML = ''; const searchTerm = dom.searchInput.value.toLowerCase(); const baseTasks = (state.activeCategory === ALL_TASKS_VIEW) ? tasksToRender : tasksToRender.filter(task => task.category === state.activeCategory); const tasksToDisplay = searchTerm ? tasksToRender.filter(task => (task.title || "").toLowerCase().includes(searchTerm) || (task.description || "").toLowerCase().includes(searchTerm)) : baseTasks; const sorters = { priority: (a, b) => (PRIORITIES[b.priority] || 0) - (PRIORITIES[a.priority] || 0) || a.order - b.order, createdAt: (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0), dueDate: (a, b) => { const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity; const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity; if (dateA === Infinity && dateB === Infinity) return a.order - b.order; return dateA - dateB; } }; const todoTasks = tasksToDisplay.filter(t => t.status === STATUSES.TODO || t.status === STATUSES.HOLD).sort(sorters[state.currentSortOrder]); const processedTasks = tasksToDisplay.filter(t => t.status === STATUSES.COMPLETED).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)); todoTasks.forEach(task => dom.todoList.appendChild(createTaskElement(task))); processedTasks.forEach(task => dom.completedList.appendChild(createTaskElement(task))); if (todoTasks.length === 0) { const message = searchTerm ? '找不到符合的待辦任務。' : (state.activeCategory === ALL_TASKS_VIEW ? '所有待辦事項都已處理完畢！' : '這個分類的待辦事項都已處理完畢。'); dom.todoList.innerHTML = `<div class="text-center p-8 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><h3 class="mt-4 text-lg font-semibold text-slate-700">太棒了！</h3><p class="mt-1 text-sm">${message}</p></div>`; } if (processedTasks.length === 0) { dom.completedList.innerHTML = `<p class="text-center text-sm text-slate-500 p-4">暫無已處理的項目</p>`; } }
             function renderTrash(deletedTasks) { dom.trashList.innerHTML = ''; if (deletedTasks.length === 0) { dom.trashList.innerHTML = '<p class="text-center text-sm text-slate-500">垃圾桶是空的。</p>'; return; } deletedTasks.sort((a,b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0)).forEach(task => { const card = document.createElement('div'); card.className = 'bg-white p-3 rounded-md shadow-sm flex justify-between items-center'; card.innerHTML = `<div><p class="font-semibold text-slate-700">${task.title}</p><p class="text-xs text-slate-400">刪除於: ${task.updatedAt ? new Date(task.updatedAt.seconds * 1000).toLocaleString() : '未知'}</p></div><div class="space-x-2"><button data-task-id="${task.id}" class="restore-btn text-sm font-semibold text-indigo-600 hover:text-indigo-800">還原</button><button data-task-id="${task.id}" class="perm-delete-btn text-sm font-semibold text-rose-600 hover:text-rose-800">永久刪除</button></div>`; dom.trashList.appendChild(card); }); }
@@ -647,29 +655,21 @@
             }
 
             function generateActionButtons(task) { const editButtonHTML = `<button class="edit-btn p-1.5 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 rounded-full transition-colors" title="編輯任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>`; const deleteButtonHTML = `<button class="delete-btn p-1.5 text-slate-400 hover:bg-rose-100 hover:text-rose-600 rounded-full transition-colors" title="移至垃圾桶"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>`; if (task.status === STATUSES.COMPLETED) { return `<button class="action-option p-1.5 text-slate-400 hover:bg-amber-100 hover:text-amber-600 rounded-full transition-colors" title="復原任務" data-status="${STATUSES.TODO}"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8.707 14.707a1 1 0 01-1.414 0L4.586 12a1 1 0 111.414-1.414L8 12.586l5.293-5.293a1 1 0 111.414 1.414l-6 6z" /></svg></button>` + deleteButtonHTML; } let menuItems = `<a href="#" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 action-option" data-status="${STATUSES.COMPLETED}">完成</a>`; if (task.status !== STATUSES.HOLD) { menuItems += `<a href="#" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 action-option" data-status="${STATUSES.HOLD}">暫緩</a>`; } else { menuItems = `<a href="#" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 action-option" data-status="${STATUSES.TODO}">恢復處理</a>` + menuItems; } const mainAction = `<div class="relative"><button class="action-menu-btn p-1.5 text-slate-400 hover:bg-emerald-100 hover:text-emerald-600 rounded-full transition-colors" title="操作"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg></button><div class="action-menu hidden origin-top-right absolute right-0 bottom-full mb-2 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"><div class="py-1">${menuItems}</div></div></div>`; return mainAction + editButtonHTML + deleteButtonHTML; }
-            function renderSubtasks(task) { let html = ''; if (task.subtasks && task.subtasks.length > 0) { html += '<h4 class="text-sm font-semibold mb-2 text-slate-600">子任務：</h4><ul class="space-y-2 pl-1 mb-3">'; task.subtasks.forEach((subtask, index) => { html += `<li class="flex items-center justify-between group" data-index="${index}"><div class="flex items-center flex-grow"><input type="checkbox" id="subtask-${task.id}-${index}" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" ${subtask.completed ? 'checked' : ''}><label for="subtask-${task.id}-${index}" class="ml-3 block text-sm text-slate-700 ${subtask.completed ? 'line-through text-slate-400' : ''}">${subtask.text}</label></div><button class="delete-subtask-btn text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition px-2" title="刪除子任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button></li>`; }); html += '</ul>'; } if (task.status !== STATUSES.COMPLETED) { html += `<form class="add-subtask-form mt-2 flex items-center space-x-2"><input type="text" placeholder="新增子任務..." class="custom-input flex-grow w-full text-sm px-3 py-1.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"><button type="submit" class="text-sm bg-slate-200 text-slate-600 font-semibold py-1.5 px-3 rounded-md hover:bg-slate-300 transition flex-shrink-0">新增</button><button type="button" class="generate-subtasks-btn p-1.5 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 rounded-full transition-colors" title="AI 產生子任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg></button></form>`; } return html; }
+            function renderSubtasks(task) { let html = ''; if (task.subtasks && task.subtasks.length > 0) { html += '<h4 class="text-sm font-semibold mb-2 text-slate-600">子任務：</h4><ul class="space-y-2 pl-1 mb-3">'; task.subtasks.forEach((subtask, index) => { html += `<li class="flex items-center justify-between group" data-index="${index}"><div class="flex items-center flex-grow"><input type="checkbox" id="subtask-${task.id}-${index}" class="subtask-checkbox h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" ${subtask.completed ? 'checked' : ''}><label for="subtask-${task.id}-${index}" class="ml-3 block text-sm text-slate-700 ${subtask.completed ? 'line-through text-slate-400' : ''}">${subtask.text}</label></div><button class="delete-subtask-btn text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition px-2" title="刪除子任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button></li>`; }); html += '</ul>'; } if (task.status !== STATUSES.COMPLETED) { html += `<form class="add-subtask-form mt-2 flex items-center space-x-2"><input type="text" placeholder="新增子任務..." class="custom-input flex-grow w-full text-sm px-3 py-1.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"><button type="submit" class="text-sm bg-slate-200 text-slate-600 font-semibold py-1.5 px-3 rounded-md hover:bg-slate-300 transition flex-shrink-0">新增</button><button type="button" class="generate-subtasks-btn p-1.5 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 rounded-full transition-colors" title="AI 產生子任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg></button></form>`; } return html; }
             
-            function populateImportCategorySelect() {
-                const select = dom.importTaskCategory;
-                if (!select) return;
-                select.innerHTML = '<option value="__AUTO__">自動 (依檔案設定)</option>';
-                const categoryOptionsHTML = state.categories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
-                select.innerHTML += categoryOptionsHTML;
-            }
-
             function bindEventListeners() { 
                 dom.addTaskForm.addEventListener('submit', handleAddTask); 
                 dom.editTaskForm.addEventListener('submit', handleUpdateTask); 
                 dom.cancelEditBtn.addEventListener('click', hideEditModal); 
                 dom.searchInput.addEventListener('input', renderTasksAndTrash); 
                 dom.clearCompletedBtn.addEventListener('click', clearCompletedTasks); 
-                
+                dom.editCategoryNameBtn.addEventListener('click', handleEditCategoryName);
+
                 dom.todoList.addEventListener('click', handleTaskCardClick);
                 dom.completedList.addEventListener('click', handleTaskCardClick);
 
                 dom.categoryTabsContainer.addEventListener('click', handleCategoryActions); 
-                dom.categoryTabsContainer.addEventListener('dblclick', handleCategoryDblClick); 
-
+                
                 dom.todoList.addEventListener('submit', handleSubtaskForms); 
                 dom.todoList.addEventListener('change', handleSubtaskForms); 
                 dom.completedList.addEventListener('submit', handleSubtaskForms);
@@ -685,6 +685,7 @@
                     dom.importModal.classList.remove('flex'); 
                 }); 
                 dom.confirmImportBtn.addEventListener('click', handleImportFromText); 
+                dom.addCategoryFromImportBtn.addEventListener('click', handleAddCategoryFromImport);
                 dom.sortControls.addEventListener('click', handleSortClick); 
                 dom.copyTitleToDescBtn.addEventListener('click', () => { dom.addTaskDesc.value = dom.addTaskTitle.value; updateAiSummarizeBtnState(); }); 
                 dom.statusReasonForm.addEventListener('submit', (e) => { e.preventDefault(); const { taskId, newStatus } = state.statusChangeContext; updateTaskStatus(taskId, newStatus, dom.statusReasonInput.value); dom.statusReasonModal.classList.add('hidden'); dom.statusReasonModal.classList.remove('flex'); dom.statusReasonInput.value = ''; }); 
@@ -707,10 +708,124 @@
                 if (SpeechRecognition) { const recognition = new SpeechRecognition(); recognition.continuous = false; recognition.lang = 'zh-TW'; recognition.interimResults = false; recognition.onstart = () => { showStatusMessage('正在聆聽...'); }; recognition.onresult = (event) => { if (state.activeRecognitionTarget) { state.activeRecognitionTarget.value += event.results[0][0].transcript; if (state.activeRecognitionTarget === dom.addTaskDesc) updateAiSummarizeBtnState(); } }; recognition.onerror = () => { showStatusMessage('語音辨識錯誤', true); }; recognition.onend = () => { setTimeout(() => showStatusMessage(''), 2000); state.activeRecognitionTarget = null; }; const setupRecognition = (target) => { state.activeRecognitionTarget = target; recognition.start(); }; dom.voiceInputBtnTitle.addEventListener('click', () => setupRecognition(dom.addTaskTitle)); dom.voiceInputBtnDesc.addEventListener('click', () => setupRecognition(dom.addTaskDesc)); dom.voiceInputBtnAssignee.addEventListener('click', () => setupRecognition(dom.addTaskAssignee)); } 
             }
             
-            async function handleCategoryActions(e) { const tabLink = e.target.closest('a[data-category]'); if (tabLink) { e.preventDefault(); if (tabLink.closest('.category-tab').querySelector('.category-edit-input')) return; updateActiveTab(tabLink.dataset.category); return; } const removeBtn = e.target.closest('.remove-category-btn'); if (removeBtn) { e.stopPropagation(); const { categoryId, categoryName } = removeBtn.dataset; if (confirm(`確定要移除分類 "${categoryName}" 嗎？\n此分類下的所有任務將會被刪除。`)) { await removeCategory(categoryId, categoryName); } return; } if (e.target.id === 'add-category-btn') { const newCategoryName = prompt("請輸入新的分類名稱："); const categoryNames = state.categories.map(c => c.name); if (newCategoryName && newCategoryName.trim() !== "" && !categoryNames.includes(newCategoryName.trim())) { await addDoc(collection(state.db, "categories"), { name: newCategoryName.trim() }); } } const exportBtn = e.target.closest('.export-category-btn'); if (exportBtn) { handleExport(exportBtn.dataset.categoryName); } }
+            async function handleCategoryActions(e) {
+                const tabLink = e.target.closest('a[data-category]');
+                if (tabLink) {
+                    e.preventDefault();
+                    updateActiveTab(tabLink.dataset.category);
+                    return;
+                }
+
+                const removeBtn = e.target.closest('.remove-category-btn'); 
+                if (removeBtn) { 
+                    e.stopPropagation(); 
+                    const { categoryId, categoryName } = removeBtn.dataset; 
+                    if (confirm(`確定要移除分類 "${categoryName}" 嗎？\n此分類下的所有任務將會被永久刪除。`)) { 
+                        await removeCategory(categoryId, categoryName); 
+                    } 
+                    return; 
+                } 
+                
+                if (e.target.id === 'add-category-btn') { 
+                    const newCategoryName = prompt("請輸入新的分類名稱："); 
+                    if (newCategoryName && newCategoryName.trim()) { 
+                        await addCategory(newCategoryName.trim()); 
+                    } 
+                } 
+                
+                const exportBtn = e.target.closest('.export-category-btn'); 
+                if (exportBtn) { 
+                    handleExport(exportBtn.dataset.categoryName); 
+                } 
+            }
+            
+            async function addCategory(name) {
+                const categoryNames = state.categories.map(c => c.name);
+                if (categoryNames.includes(name)) {
+                    alert('此分類名稱已存在！');
+                    return null;
+                }
+                try {
+                    const docRef = await addDoc(collection(state.db, "categories"), { name });
+                    return docRef;
+                } catch (error) {
+                    console.error("新增分類失敗:", error);
+                    return null;
+                }
+            }
+
+            async function handleAddCategoryFromImport() {
+                const newCategoryName = prompt("請輸入新的分類名稱：");
+                if (newCategoryName && newCategoryName.trim()) {
+                    const result = await addCategory(newCategoryName.trim());
+                    if (result) {
+                        state.categories.push({ id: result.id, name: newCategoryName.trim() });
+                        refreshAllCategorySelects(newCategoryName.trim());
+                    }
+                }
+            }
+
             async function removeCategory(categoryId, categoryName) { const tasksToDeleteQuery = query(collection(state.db, 'tasks'), where("category", "==", categoryName)); const querySnapshot = await getDocs(tasksToDeleteQuery); const batch = writeBatch(state.db); querySnapshot.forEach(doc => { batch.delete(doc.ref); }); batch.delete(doc(state.db, 'categories', categoryId)); await batch.commit(); if (state.activeCategory === categoryName) { updateActiveTab(ALL_TASKS_VIEW); } }
-            async function updateCategoryName(id, oldName, newName) { if (!newName || newName === oldName) return; const tasksToUpdateQuery = query(collection(state.db, 'tasks'), where("category", "==", oldName)); const querySnapshot = await getDocs(tasksToUpdateQuery); const batch = writeBatch(state.db); querySnapshot.forEach(doc => { batch.update(doc.ref, { category: newName }); }); batch.update(doc(state.db, 'categories', id), { name: newName }); try { await batch.commit(); if (state.activeCategory === oldName) { updateActiveTab(newName); } } catch (error) { console.error("更新分類名稱失敗:", error); } }
-            function handleCategoryDblClick(e) { const tabLink = e.target.closest('a[data-category-id]'); if (!tabLink) return; const categoryId = tabLink.dataset.categoryId; const categoryName = tabLink.querySelector('span').textContent; const input = document.createElement('input'); input.type = 'text'; input.value = categoryName; input.className = 'category-edit-input'; const restoreTab = () => { tabLink.style.display = ''; input.replaceWith(tabLink); }; const saveChanges = () => { const newName = input.value.trim(); updateCategoryName(categoryId, categoryName, newName); restoreTab(); }; input.addEventListener('blur', saveChanges); input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveChanges(); } else if (e.key === 'Escape') { e.preventDefault(); restoreTab(); } }); tabLink.style.display = 'none'; tabLink.parentElement.insertBefore(input, tabLink); input.focus(); input.select(); }
+            
+            async function updateCategoryName(id, oldName, newName) {
+                if (!newName || newName === oldName) return false;
+                
+                const tasksToUpdateQuery = query(collection(state.db, 'tasks'), where("category", "==", oldName));
+                const querySnapshot = await getDocs(tasksToUpdateQuery);
+                const batch = writeBatch(state.db);
+                
+                querySnapshot.forEach(doc => {
+                    batch.update(doc.ref, { category: newName });
+                });
+                batch.update(doc(state.db, 'categories', id), { name: newName });
+                
+                try {
+                    await batch.commit();
+                    if (state.activeCategory === oldName) {
+                        state.activeCategory = newName; // Manually update state before re-render
+                        localStorage.setItem('activeCategory', newName);
+                    }
+                    return true;
+                } catch (error) {
+                    console.error("更新分類名稱失敗:", error);
+                    return false;
+                }
+            }
+
+            async function handleEditCategoryName() {
+                const currentCategoryName = dom.editTaskCategory.value;
+                if (!currentCategoryName) {
+                    alert('請先選擇一個要編輯的分類。');
+                    return;
+                }
+
+                const categoryToEdit = state.categories.find(c => c.name === currentCategoryName);
+                if (!categoryToEdit) return;
+
+                const newCategoryName = prompt("請輸入新的分類名稱：", currentCategoryName);
+
+                if (newCategoryName === null || !newCategoryName.trim() || newCategoryName.trim() === currentCategoryName) {
+                    return; // User cancelled, entered empty string, or name is unchanged
+                }
+                
+                const trimmedNewName = newCategoryName.trim();
+
+                if (state.categories.some(c => c.name === trimmedNewName)) {
+                    alert('此分類名稱已存在！');
+                    return;
+                }
+
+                const success = await updateCategoryName(categoryToEdit.id, categoryToEdit.name, trimmedNewName);
+                
+                if (success) {
+                    // The onSnapshot listener will eventually update the UI, 
+                    // but for immediate feedback, we update the select value here.
+                    const currentTask = state.localTasksCache.get(state.currentEditingTaskId);
+                    if (currentTask && currentTask.category === currentCategoryName) {
+                        dom.editTaskCategory.value = trimmedNewName;
+                    }
+                }
+            }
             
             function handleTaskCardClick(e) {
                 const target = e.target;
@@ -719,7 +834,6 @@
 
                 const taskId = taskCard.dataset.id;
                 
-                // This selector finds any interactive element.
                 const isActionButton = target.closest('button, a, input, textarea, form');
 
                 if (isActionButton) {
@@ -729,6 +843,12 @@
                     else if (target.closest('.action-option')) { e.preventDefault(); handleStatusChange(taskId, target.closest('.action-option').dataset.status); }
                     else if (target.closest('.history-btn')) { showHistoryModal(state.localTasksCache.get(taskId)); }
                     else if (target.closest('.inline-edit-assignee-btn')) { handleAssigneeInlineEdit(target.closest('.group'), taskId); }
+                    else if (target.closest('.delete-subtask-btn')) { 
+                        const subtaskIndex = parseInt(target.closest('li').dataset.index);
+                        if (confirm('確定要刪除這個子任務嗎？')) {
+                            deleteSubtask(taskId, subtaskIndex);
+                        }
+                    }
                     return; 
                 }
 
@@ -808,7 +928,7 @@
             }
 
             async function updateTaskStatus(taskId, newStatus, reason = '') { const task = state.localTasksCache.get(taskId); if (!task) return; const newHistoryEntry = { status: newStatus, reason: reason.trim() || '狀態變更', timestamp: Timestamp.now(), user: state.userName }; const updatedHistory = [...(task.history || []), newHistoryEntry]; await updateDoc(doc(state.db, 'tasks', taskId), { status: newStatus, history: updatedHistory, updatedAt: serverTimestamp() }); }
-            async function deleteTask(id) { if (!id) return; await updateTaskStatus(id, STATUSES.DELETED, '移至垃圾桶'); }
+            async function deleteTask(id) { if (!id) return; if (confirm('確定要將此任務移至垃圾桶嗎？')) { await updateTaskStatus(id, STATUSES.DELETED, '移至垃圾桶'); } }
             function showEditModal(task) { if(!task) return; state.currentEditingTaskId = task.id; dom.editTaskTitle.value = task.title || ''; dom.editTaskDesc.value = task.description || ''; dom.editTaskDueDate.value = task.dueDate || ''; dom.editTaskCategory.value = task.category || state.categories[0].name; dom.editTaskPriority.value = task.priority || '中'; dom.editTaskAssignee.value = task.assignee || ''; dom.editModalOverlay.classList.remove('hidden'); dom.editModalOverlay.classList.add('flex'); }
             function hideEditModal() { state.currentEditingTaskId = null; dom.editModalOverlay.classList.add('hidden'); dom.editModalOverlay.classList.remove('flex'); }
             function updateActiveTab(newCategory) { state.activeCategory = newCategory; localStorage.setItem('activeCategory', newCategory); renderCategoriesUI(); renderTasksAndTrash(); }
@@ -816,7 +936,7 @@
             function handleTrashActions(e) { const restoreBtn = e.target.closest('.restore-btn'); if (restoreBtn) { updateTaskStatus(restoreBtn.dataset.taskId, STATUSES.TODO, '從垃圾桶還原'); return; } const permDeleteBtn = e.target.closest('.perm-delete-btn'); if (permDeleteBtn) { if (confirm('確定要永久刪除這個任務嗎？此操作無法復原。')) { deleteDoc(doc(state.db, 'tasks', permDeleteBtn.dataset.taskId)); } } }
             function showHistoryModal(task) { dom.historyList.innerHTML = ''; if (!task.history || task.history.length === 0) { dom.historyList.innerHTML = '<p class="text-slate-500">沒有歷史紀錄。</p>'; } else { task.history.slice().reverse().forEach(entry => { const item = document.createElement('div'); item.className = 'history-item pb-2'; item.innerHTML = `<p class="font-semibold text-slate-800">${entry.status}</p><p class="text-sm text-slate-600">${entry.reason}</p><p class="text-xs text-slate-400 mt-1">${entry.timestamp ? new Date(entry.timestamp.seconds * 1000).toLocaleString() : '時間未知'} by ${entry.user}</p>`; dom.historyList.appendChild(item); }); } dom.historyModal.classList.remove('hidden'); dom.historyModal.classList.add('flex'); }
             async function clearCompletedTasks() { const tasksToClear = Array.from(state.localTasksCache.values()).filter(t => t.status === STATUSES.COMPLETED && (state.activeCategory === ALL_TASKS_VIEW || t.category === state.activeCategory)); if (tasksToClear.length === 0) return; if (!confirm(`確定要將 ${tasksToClear.length} 個已完成項目移至垃圾桶嗎？`)) return; const batch = writeBatch(state.db); tasksToClear.forEach(task => { const newHistoryEntry = { status: STATUSES.DELETED, reason: '清除已完成項目', timestamp: Timestamp.now(), user: state.userName }; const updatedHistory = [...(task.history || []), newHistoryEntry]; batch.update(doc(state.db, 'tasks', task.id), { status: STATUSES.DELETED, history: updatedHistory, updatedAt: serverTimestamp() }); }); await batch.commit(); }
-            function handleSubtaskForms(e) { const taskCard = e.target.closest('.task-card'); if (!taskCard) return; const taskId = taskCard.dataset.id; if (e.target.matches('input[type="checkbox"]')) { const subtaskIndex = parseInt(e.target.closest('li').dataset.index); toggleSubtaskCompletion(taskId, subtaskIndex); } else if (e.target.closest('.add-subtask-form')) { e.preventDefault(); const form = e.target.closest('.add-subtask-form'); const input = form.querySelector('input[type="text"]'); if (input.value.trim()) { addSubtask(taskId, input.value.trim()); input.value = ''; } } }
+            function handleSubtaskForms(e) { const taskCard = e.target.closest('.task-card'); if (!taskCard) return; const taskId = taskCard.dataset.id; if (e.target.matches('input.subtask-checkbox')) { const subtaskIndex = parseInt(e.target.closest('li').dataset.index); toggleSubtaskCompletion(taskId, subtaskIndex); } else if (e.target.closest('.add-subtask-form')) { e.preventDefault(); const form = e.target.closest('.add-subtask-form'); const input = form.querySelector('input[type="text"]'); if (input.value.trim()) { addSubtask(taskId, input.value.trim()); input.value = ''; } } }
             async function addSubtask(taskId, subtaskText) { const task = state.localTasksCache.get(taskId); if(!task) return; const newSubtask = { text: subtaskText, completed: false }; const updatedSubtasks = [...(task.subtasks || []), newSubtask]; await updateDoc(doc(state.db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
             async function deleteSubtask(taskId, subtaskIndex) { const task = state.localTasksCache.get(taskId); if(!task) return; const updatedSubtasks = [...task.subtasks]; updatedSubtasks.splice(subtaskIndex, 1); await updateDoc(doc(state.db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
             async function toggleSubtaskCompletion(taskId, subtaskIndex) { const task = state.localTasksCache.get(taskId); if(!task) return; const updatedSubtasks = [...task.subtasks]; updatedSubtasks[subtaskIndex].completed = !updatedSubtasks[subtaskIndex].completed; await updateDoc(doc(state.db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
@@ -830,6 +950,20 @@
             async function generateDescriptionFromImage(base64Data) { showStatusMessage('AI 正在分析圖片...'); const payload = { contents: [{ parts: [{ text: "請根據這張圖片，用繁體中文產生一段簡短的任務描述。" }, { inlineData: { mimeType: "image/png", data: base64Data.split(',')[1] } }] }] }; const result = await callGemini(payload); if (result) { dom.addTaskDesc.value = result.trim(); updateAiSummarizeBtnState(); showStatusMessage('已根據圖片產生描述！'); } }
             async function handleGenerateSubtasks(e, task) { const button = e.currentTarget; if (!task.title) { showStatusMessage('任務需要標題才能產生子任務', true); return; } button.disabled = true; const spinner = `<svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`; const originalContent = button.innerHTML; button.innerHTML = spinner; const prompt = `你是一個專案管理助理。根據以下主要任務，請將其拆解成 3 到 5 個具體的、可操作的子任務。請僅回傳一個 JSON 格式的陣列，例如：["子任務一", "子任務二"]。\n\n主要任務標題：${task.title}\n主要任務描述：${task.description || '(無描述)'}`; const result = await callGemini({ contents: [{ parts: [{ text: prompt }] }] }); if (result) { try { const subtaskTexts = JSON.parse(result); if (Array.isArray(subtaskTexts)) { const newSubtasks = subtaskTexts.map(text => ({ text, completed: false })); const updatedSubtasks = [...(task.subtasks || []), ...newSubtasks]; await updateDoc(doc(state.db, 'tasks', task.id), { subtasks: updatedSubtasks }); } } catch (err) { console.error("解析 AI 子任務失敗:", err); showStatusMessage('AI 回應格式錯誤', true); } } button.innerHTML = originalContent; button.disabled = false; }
             function showStatusMessage(message, isError = false) { dom.statusMessage.textContent = message; dom.statusMessage.className = `text-sm text-center h-5 ${isError ? 'text-red-600' : 'text-slate-500'}`; if (message) { setTimeout(() => { if (dom.statusMessage.textContent === message) { dom.statusMessage.textContent = ''; } }, 4000); } }
+            
+            function showImportStatusMessage(message, isError = true) {
+                if (!dom.importStatusMessage) return;
+                dom.importStatusMessage.textContent = message;
+                dom.importStatusMessage.className = `text-sm text-center h-5 mt-2 ${isError ? 'text-red-600' : 'text-emerald-600'}`;
+                if (message) {
+                    setTimeout(() => {
+                        if (dom.importStatusMessage.textContent === message) {
+                            dom.importStatusMessage.textContent = '';
+                        }
+                    }, 5000);
+                }
+            }
+
             function updateOnlineStatus(isOnline) { if (isOnline) { dom.offlineStatus.classList.add('hidden'); dom.offlineStatus.classList.remove('flex'); } else { dom.offlineMessage.textContent = '您目前處於離線狀態，所有變更將在恢復連線後自動同步。'; dom.offlineStatus.classList.remove('hidden'); dom.offlineStatus.classList.add('flex'); } }
             function handleSortClick(e) { const button = e.target.closest('.sort-btn'); if (!button) return; state.currentSortOrder = button.dataset.sort; updateSortButtonsUI(); renderTasksAndTrash(); }
             function updateSortButtonsUI() { dom.sortControls.querySelectorAll('.sort-btn').forEach(btn => { const isSelected = btn.dataset.sort === state.currentSortOrder; btn.classList.toggle('sort-active', isSelected); btn.classList.toggle('text-slate-500', !isSelected); }); }
@@ -838,44 +972,63 @@
             async function handleImportFromText() {
                 const jsonText = dom.importTextarea.value;
                 const targetCategory = dom.importTaskCategory.value;
-                if (!jsonText.trim()) { return showStatusMessage('請貼上 JSON 內容', true); }
+                if (!jsonText.trim()) {
+                    return showImportStatusMessage('請貼上 JSON 內容');
+                }
                 try {
                     const data = JSON.parse(jsonText);
-                    if (!data.tasks || !Array.isArray(data.tasks)) { throw new Error('無效的檔案格式：缺少 "tasks" 陣列。'); }
+                    if (typeof data !== 'object' || data === null || !data.tasks || !Array.isArray(data.tasks)) {
+                        throw new Error('無效的格式：內容需包含一個 "tasks" 陣列。');
+                    }
                     if (!confirm(`您確定要匯入 ${data.tasks.length} 個任務嗎？`)) return;
 
-                    showStatusMessage(`正在匯入 ${data.tasks.length} 個任務...`);
+                    dom.confirmImportBtn.disabled = true;
+                    showImportStatusMessage(`正在匯入 ${data.tasks.length} 個任務...`, false);
+
                     const batch = writeBatch(state.db);
                     const importedTaskIds = [];
-                    
                     const existingCategoryNames = state.categories.map(c => c.name);
-                    const importedCategoryNames = data.categories ? data.categories.map(c => c.name) : [];
-                    const allPossibleCategoryNames = [...new Set([...existingCategoryNames, ...importedCategoryNames])];
 
                     data.tasks.forEach(task => {
                         const newDocRef = doc(collection(state.db, 'tasks'));
                         importedTaskIds.push(newDocRef.id);
-                        if (task.createdAt && typeof task.createdAt === 'string') { task.createdAt = Timestamp.fromDate(new Date(task.createdAt)); }
                         
+                        let taskTimestamp;
+                        if (task.createdAt && typeof task.createdAt === 'string') {
+                            const date = new Date(task.createdAt);
+                            if (!isNaN(date.getTime())) {
+                                taskTimestamp = Timestamp.fromDate(date);
+                            } else {
+                                taskTimestamp = serverTimestamp();
+                            }
+                        } else {
+                            taskTimestamp = serverTimestamp();
+                        }
+
                         let finalCategory;
                         if (targetCategory !== '__AUTO__') {
                             finalCategory = targetCategory;
-                        } else if (task.category && allPossibleCategoryNames.includes(task.category)) {
+                        } else if (task.category && existingCategoryNames.includes(task.category)) {
                             finalCategory = task.category;
                         } else {
                             finalCategory = existingCategoryNames.length > 0 ? existingCategoryNames[0] : '未分類';
                         }
-                        
-                        const finalAssignee = task.assignee?.trim() || '未指派';
 
-                        batch.set(newDocRef, {
-                            ...task,
-                            id: undefined,
-                            assignee: finalAssignee,
+                        const newTaskData = {
+                            title: task.title || '無標題任務',
+                            description: task.description || '',
+                            priority: task.priority || '中',
+                            status: task.status || STATUSES.TODO,
                             category: finalCategory,
-                            createdAt: task.createdAt || serverTimestamp(),
+                            assignee: task.assignee || '未指派',
+                            createdBy: task.createdBy || state.userName,
+                            createdAt: taskTimestamp,
+                            dueDate: task.dueDate || null,
+                            subtasks: task.subtasks || [],
                             history: task.history || [{ status: task.status || STATUSES.TODO, reason: '匯入建立', timestamp: Timestamp.now(), user: state.userName }]
-                        });
+                        };
+                        
+                        batch.set(newDocRef, newTaskData);
                     });
                     
                     await batch.commit();
@@ -886,7 +1039,9 @@
                     showUndoNotification(`成功匯入 ${importedTaskIds.length} 個任務！`);
                 } catch (error) {
                     console.error("匯入失敗:", error);
-                    showStatusMessage(`匯入失敗: ${error.message}`, true);
+                    showImportStatusMessage(`匯入失敗: ${error.message}`);
+                } finally {
+                    dom.confirmImportBtn.disabled = false;
                 }
             }
 
@@ -924,4 +1079,3 @@
     </script>
 </body>
 </html>
-
