@@ -69,6 +69,8 @@
         #welcome-overlay.visible { opacity: 1; visibility: visible; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .welcome-animate { animation: fadeIn 0.8s ease-out forwards; }
+        .spinner { border-top-color: #fff; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .priority-緊急 { border-color: #ef4444; }
         .priority-高 { border-color: #f97316; }
@@ -123,8 +125,15 @@
     </style>
 </head>
 <body class="antialiased">
-    <div id="loading-overlay" class="fixed inset-0 bg-slate-50/80 backdrop-blur-sm flex items-center justify-center z-[9999] transition-opacity duration-300">...</div>
-    <div id="welcome-overlay" class="fixed inset-0 bg-indigo-600 flex items-center justify-center z-[9998]">...</div>
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-50/80 backdrop-blur-sm flex items-center justify-center z-[9999] transition-opacity duration-300">
+        <div class="w-16 h-16 border-4 border-slate-300 rounded-full spinner"></div>
+    </div>
+    <div id="welcome-overlay" class="fixed inset-0 bg-indigo-600 flex items-center justify-center z-[9998]">
+        <div class="text-center text-white welcome-animate">
+            <h1 class="text-4xl font-bold tracking-wider">歡迎使用</h1>
+            <p class="mt-2 text-lg text-indigo-200">工作任務追蹤平台</p>
+        </div>
+    </div>
     <div id="edit-modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 modal-overlay">
         <div class="bg-white w-full max-w-lg rounded-xl shadow-xl flex flex-col max-h-[90vh]">
              <form id="edit-task-form" class="flex flex-col flex-grow min-h-0">
@@ -488,7 +497,7 @@
             }
             function highlightText(text, searchTerm) { if (!searchTerm || !text) return text; const regex = new RegExp(`(${searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'); return text.replace(regex, `<mark>$1</mark>`); }
 
-            function listenForCategories() { const categoriesCollection = collection(state.db, 'categories'); if(unsubscribeCategories) unsubscribeCategories(); unsubscribeCategories = onSnapshot(query(categoriesCollection), (snapshot) => { if (snapshot.empty) { const defaultCategories = ["董總交辦", "行政管理", "運籌管理", "有機植萃", "品質管理"]; const batch = writeBatch(state.db); defaultCategories.forEach(name => { const docRef = doc(collection(state.db, "categories")); batch.set(docRef, { name }); }); batch.commit(); return; } state.categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); const categoryNames = state.categories.map(c => c.name); if (state.activeCategory !== ALL_TASKS_VIEW && !categoryNames.includes(state.activeCategory)) { state.activeCategory = ALL_TASKS_VIEW; localStorage.setItem('activeCategory', state.activeCategory); } renderCategoriesUI(); refreshAllCategorySelects(); renderTasksAndTrash(); }); }
+            function listenForCategories() { const categoriesCollection = collection(state.db, 'categories'); if(unsubscribeCategories) unsubscribeCategories(); unsubscribeCategories = onSnapshot(query(categoriesCollection), (snapshot) => { if (snapshot.empty) { const defaultCategories = ["董總交辦", "行政管理", "運籌管理", "有機植萃", "品質管理"]; const batch = writeBatch(state.db); defaultCategories.forEach(name => { const docRef = doc(collection(state.db, "categories")); batch.set(docRef, { name }); }); batch.commit(); return; } state.categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); const categoryNames = state.categories.map(c => c.name); if (state.activeCategory !== ALL_TASKS_VIEW && !categoryNames.includes(state.activeCategory)) { state.activeCategory = ALL_TASKS_VIEW; localStorage.setItem('activeCategory', state.activeCategory); } renderCategoriesUI(); renderTasksAndTrash(); }); }
             
             function listenForTasks() { 
                 const tasksCollection = collection(state.db, 'tasks'); 
@@ -511,7 +520,6 @@
                     }); 
                     
                     renderAssigneeDatalist(allAssignees);
-                    renderCategoriesUI(); 
                     renderTasksAndTrash(); 
 
                     currentlyExpanded.forEach(id => {
@@ -569,22 +577,43 @@
                 addCategoryButton.id = 'add-category-btn'; 
                 addCategoryButton.className = "ml-2 px-3 py-1.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors duration-200"; 
                 addCategoryButton.textContent = "+ 新增"; 
-                container.appendChild(addCategoryButton); 
+                container.appendChild(addCategoryButton);
+
+                // This function is now the single source of truth for ALL category dropdowns
+                renderAllCategorySelects();
             }
             
-            function refreshAllCategorySelects(selectedValue) {
-                const selectOptionsHTML = state.categories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
+            function renderAllCategorySelects() {
+                const { categories, activeCategory } = state;
+                const selectOptionsHTML = categories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
+
+                // Update form dropdowns
                 [dom.addTaskCategory, dom.editTaskCategory].forEach(select => {
                     if (select) {
                         const currentVal = select.value;
                         select.innerHTML = selectOptionsHTML;
-                        select.value = selectedValue || currentVal;
+                        // Try to preserve current value, if it still exists
+                        if (categories.some(c => c.name === currentVal)) {
+                            select.value = currentVal;
+                        } else if (activeCategory !== ALL_TASKS_VIEW) {
+                            select.value = activeCategory;
+                        }
                     }
                 });
+
+                // Update import modal dropdown
                 if(dom.importTaskCategory) {
                     const currentVal = dom.importTaskCategory.value;
                     dom.importTaskCategory.innerHTML = '<option value="__AUTO__">自動 (依檔案設定)</option>' + selectOptionsHTML;
-                    dom.importTaskCategory.value = selectedValue || currentVal;
+                    if (categories.some(c => c.name === currentVal)) {
+                       dom.importTaskCategory.value = currentVal;
+                    }
+                }
+
+                // Update mobile navigation dropdown
+                if (dom.tabsSelect) {
+                    dom.tabsSelect.innerHTML = `<option value="${ALL_TASKS_VIEW}">所有任務</option>` + selectOptionsHTML;
+                    dom.tabsSelect.value = activeCategory;
                 }
             }
 
@@ -664,6 +693,7 @@
                 dom.searchInput.addEventListener('input', renderTasksAndTrash); 
                 dom.clearCompletedBtn.addEventListener('click', clearCompletedTasks); 
                 dom.editCategoryNameBtn.addEventListener('click', handleEditCategoryName);
+                dom.tabsSelect.addEventListener('change', (e) => updateActiveTab(e.target.value));
 
                 dom.todoList.addEventListener('click', handleTaskCardClick);
                 dom.completedList.addEventListener('click', handleTaskCardClick);
@@ -676,7 +706,7 @@
                 dom.completedList.addEventListener('change', handleSubtaskForms); 
 
                 dom.importBtnMain.addEventListener('click', () => { 
-                    populateImportCategorySelect();
+                    renderAllCategorySelects();
                     dom.importModal.classList.remove('hidden'); 
                     dom.importModal.classList.add('flex'); 
                 }); 
@@ -757,11 +787,8 @@
             async function handleAddCategoryFromImport() {
                 const newCategoryName = prompt("請輸入新的分類名稱：");
                 if (newCategoryName && newCategoryName.trim()) {
-                    const result = await addCategory(newCategoryName.trim());
-                    if (result) {
-                        state.categories.push({ id: result.id, name: newCategoryName.trim() });
-                        refreshAllCategorySelects(newCategoryName.trim());
-                    }
+                    await addCategory(newCategoryName.trim());
+                    // The onSnapshot listener will automatically update the UI
                 }
             }
 
@@ -782,7 +809,7 @@
                 try {
                     await batch.commit();
                     if (state.activeCategory === oldName) {
-                        state.activeCategory = newName; // Manually update state before re-render
+                        state.activeCategory = newName; 
                         localStorage.setItem('activeCategory', newName);
                     }
                     return true;
@@ -805,7 +832,7 @@
                 const newCategoryName = prompt("請輸入新的分類名稱：", currentCategoryName);
 
                 if (newCategoryName === null || !newCategoryName.trim() || newCategoryName.trim() === currentCategoryName) {
-                    return; // User cancelled, entered empty string, or name is unchanged
+                    return;
                 }
                 
                 const trimmedNewName = newCategoryName.trim();
@@ -818,8 +845,6 @@
                 const success = await updateCategoryName(categoryToEdit.id, categoryToEdit.name, trimmedNewName);
                 
                 if (success) {
-                    // The onSnapshot listener will eventually update the UI, 
-                    // but for immediate feedback, we update the select value here.
                     const currentTask = state.localTasksCache.get(state.currentEditingTaskId);
                     if (currentTask && currentTask.category === currentCategoryName) {
                         dom.editTaskCategory.value = trimmedNewName;
