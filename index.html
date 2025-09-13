@@ -15,7 +15,7 @@
             background-color: #f8fafc;
         }
         .task-card { 
-            transition: box-shadow 0.2s ease-in-out; 
+            transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out; 
             cursor: grab;
         }
         .task-card:active {
@@ -122,6 +122,9 @@
         .task-card.expanded .expand-arrow {
             transform: rotate(180deg);
         }
+        
+        @keyframes highlight { 0% { background-color: #eef2ff; } 100% { background-color: white; } }
+        .task-highlight { animation: highlight 2s ease-out; }
     </style>
 </head>
 <body class="antialiased">
@@ -134,6 +137,26 @@
             <p class="mt-2 text-lg text-indigo-200">工作任務追蹤平台</p>
         </div>
     </div>
+
+    <div id="due-tasks-modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 modal-overlay">
+        <div class="bg-white w-full max-w-lg rounded-xl shadow-xl flex flex-col max-h-[90vh]">
+             <div class="p-6 md:p-8 flex-grow overflow-y-auto">
+                <h2 class="text-xl font-semibold mb-4 text-slate-800 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2.5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.414L11 9.586V6z" clip-rule="evenodd" />
+                    </svg>
+                    到期任務提醒
+                </h2>
+                <p class="text-sm text-slate-500 mb-6">以下是已過期或今日到期的任務，請儘速處理。</p>
+                <div id="due-tasks-list" class="space-y-3">
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-4 flex justify-end items-center rounded-b-xl flex-shrink-0">
+                <button type="button" id="close-due-tasks-btn" class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition text-sm font-semibold">我知道了</button>
+            </div>
+        </div>
+    </div>
+
     <div id="edit-modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 modal-overlay">
         <div class="bg-white w-full max-w-lg rounded-xl shadow-xl flex flex-col max-h-[90vh]">
              <form id="edit-task-form" class="flex flex-col flex-grow min-h-0">
@@ -379,7 +402,7 @@
             const firebaseConfig = { apiKey: "AIzaSyDDAYiLAtQKkusNSR6Yw54d39F7ruWfhv8", authDomain: "team-task-app-73ec0.firebaseapp.com", projectId: "team-task-app-73ec0", storageBucket: "team-task-app-73ec0.appspot.com", messagingSenderId: "544030228623", appId: "1:544030228623:web:245b75df7fc0d4301030fa" };
             
             const STATUSES = { TODO: "待辦事項", HOLD: "暫緩中", COMPLETED: "已完成", DELETED: "已刪除" };
-            const CREATOR_COLORS = { "董事長": "border-rose-500", "總經理": "border-sky-500", "使用者": "border-slate-400", "未知": "border-slate-300" };
+            // 移除 CREATOR_COLORS，因為不再使用
             const PRIORITIES = { '緊急': 4, '高': 3, '中': 2, '低': 1 };
             const ALL_TASKS_VIEW = '__ALL__';
             
@@ -463,10 +486,148 @@
                 undoBar: document.getElementById('undo-bar'),
                 undoMessage: document.getElementById('undo-message'),
                 undoBtn: document.getElementById('undo-btn'),
+                dueTasksModal: document.getElementById('due-tasks-modal-overlay'),
+                dueTasksList: document.getElementById('due-tasks-list'),
+                closeDueTasksBtn: document.getElementById('close-due-tasks-btn'),
             };
 
             function startApp() { if (!firebaseConfig.apiKey.startsWith("AIza")) { showError("您尚未設定 Firebase！"); return; } const app = initializeApp(firebaseConfig); state.auth = getAuth(app); state.db = getFirestore(app); enableIndexedDbPersistence(state.db).catch(err => console.warn("Firebase Persistence Error:", err.message)); onAuthStateChanged(state.auth, user => { if (user) { bootstrapMainApp(); } else { signInAnonymously(state.auth).catch(error => { console.error("匿名登入失敗:", error); showError(`Firebase 認證失敗: ${error.message}`); }); } }); }
-            function bootstrapMainApp() { dom.loadingOverlay.style.display = 'none'; dom.welcomeOverlay.classList.add('visible'); populateSelects(); setTimeout(() => { dom.welcomeOverlay.classList.remove('visible'); setTimeout(() => { dom.appContainer.classList.remove('hidden'); dom.appContainer.classList.remove('opacity-0'); }, 500); }, 2000); updateSortButtonsUI(); listenForCategories(); listenForTasks(); initializeDragAndDrop(); bindEventListeners(); }
+            
+            function bootstrapMainApp() { 
+                dom.loadingOverlay.style.display = 'none'; 
+                dom.welcomeOverlay.classList.add('visible'); 
+                populateSelects(); 
+                
+                setTimeout(() => { 
+                    dom.welcomeOverlay.classList.remove('visible'); 
+                    listenForCategories(); 
+                    listenForTasks(() => {
+                        checkAndShowDueTasks();
+                    });
+                    initializeDragAndDrop(); 
+                    bindEventListeners();
+                    updateSortButtonsUI(); 
+                }, 2000); 
+            }
+
+            function showMainApp() {
+                dom.appContainer.classList.remove('hidden');
+                dom.appContainer.classList.add('opacity-100'); 
+            }
+
+            function checkAndShowDueTasks() {
+                const { overdue, dueToday } = getDueAndOverdueTasks();
+
+                if (overdue.length === 0 && dueToday.length === 0) {
+                    showMainApp(); 
+                    return;
+                }
+
+                dom.dueTasksList.innerHTML = '';
+
+                const createListItem = (task, isOverdue) => {
+                    const statusText = isOverdue ? '已過期' : '今天到期';
+                    const textColor = isOverdue ? 'text-red-600' : 'text-amber-600';
+                    return `
+                        <div class="due-task-item p-3 bg-slate-50 hover:bg-slate-100 rounded-lg cursor-pointer border-l-4 ${isOverdue ? 'border-red-500' : 'border-amber-500'}" data-task-id="${task.id}">
+                            <div class="flex justify-between items-center">
+                                <p class="font-semibold text-slate-800">${task.title}</p>
+                                <span class="text-xs font-bold ${textColor}">${statusText}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">
+                                分類: ${task.category} | 日期: ${task.dueDate}
+                            </p>
+                        </div>
+                    `;
+                };
+
+                if (overdue.length > 0) {
+                    dom.dueTasksList.innerHTML += `<h3 class="text-sm font-bold text-slate-600 mb-2 mt-1">已過期任務</h3>`;
+                    overdue.forEach(task => dom.dueTasksList.innerHTML += createListItem(task, true));
+                }
+                
+                if (dueToday.length > 0) {
+                    dom.dueTasksList.innerHTML += `<h3 class="text-sm font-bold text-slate-600 mb-2 mt-4">今日到期任務</h3>`;
+                    dueToday.forEach(task => dom.dueTasksList.innerHTML += createListItem(task, false));
+                }
+
+                dom.dueTasksModal.classList.remove('hidden');
+                dom.dueTasksModal.classList.add('flex');
+            }
+
+            function getDueAndOverdueTasks() {
+                const allTasks = Array.from(state.localTasksCache.values());
+                const activeTasks = allTasks.filter(t => t.dueDate && t.status !== STATUSES.COMPLETED && t.status !== STATUSES.DELETED);
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const overdue = [];
+                const dueToday = [];
+
+                activeTasks.forEach(task => {
+                    const dueDate = new Date(task.dueDate);
+                    dueDate.setHours(0, 0, 0, 0);
+
+                    if (dueDate < today) {
+                        overdue.push(task);
+                    } else if (dueDate.getTime() === today.getTime()) {
+                        dueToday.push(task);
+                    }
+                });
+
+                return { overdue, dueToday };
+            }
+
+            function focusOnTask(taskId) {
+                const taskData = state.localTasksCache.get(taskId);
+                if (!taskData) return;
+
+                if (state.activeCategory !== ALL_TASKS_VIEW && state.activeCategory !== taskData.category) {
+                    updateActiveTab(taskData.category);
+                }
+
+                setTimeout(() => {
+                    const taskCard = document.querySelector(`.task-card[data-id="${taskId}"]`);
+                    if (taskCard) {
+                        taskCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        taskCard.classList.add('expanded');
+                        taskCard.classList.add('task-highlight');
+                        setTimeout(() => taskCard.classList.remove('task-highlight'), 2000);
+                    }
+                }, 100); 
+            }
+            
+            // ===== 新增：根據截止日期決定顏色的函式 =====
+            function getDueDateColorClass(task) {
+                // 如果任務已完成，使用中性顏色
+                if (task.status === STATUSES.COMPLETED) {
+                    return 'border-slate-300';
+                }
+                // 如果沒有截止日期，使用綠色
+                if (!task.dueDate) {
+                    return 'border-green-500';
+                }
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // 將今天時間標準化到午夜
+
+                const dueDate = new Date(task.dueDate);
+                dueDate.setHours(0, 0, 0, 0); // 將任務截止時間標準化到午夜
+
+                const oneWeekFromNow = new Date(today);
+                oneWeekFromNow.setDate(today.getDate() + 7);
+
+                if (dueDate < today) {
+                    return 'border-red-500'; // 過期：紅色
+                } else if (dueDate <= oneWeekFromNow) {
+                    return 'border-blue-500'; // 一週內到期：藍色
+                } else {
+                    return 'border-green-500'; // 其他：綠色
+                }
+            }
+
+
             function populateSelects() { const priorityOptions = Object.keys(PRIORITIES).map(p => `<option value="${p}">${p}</option>`).join(''); [dom.addTaskPriority, dom.editTaskPriority].forEach(sel => sel.innerHTML = priorityOptions); }
             
             function initializeDragAndDrop() { 
@@ -499,9 +660,10 @@
 
             function listenForCategories() { const categoriesCollection = collection(state.db, 'categories'); if(unsubscribeCategories) unsubscribeCategories(); unsubscribeCategories = onSnapshot(query(categoriesCollection), (snapshot) => { if (snapshot.empty) { const defaultCategories = ["董總交辦", "行政管理", "運籌管理", "有機植萃", "品質管理"]; const batch = writeBatch(state.db); defaultCategories.forEach(name => { const docRef = doc(collection(state.db, "categories")); batch.set(docRef, { name }); }); batch.commit(); return; } state.categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); const categoryNames = state.categories.map(c => c.name); if (state.activeCategory !== ALL_TASKS_VIEW && !categoryNames.includes(state.activeCategory)) { state.activeCategory = ALL_TASKS_VIEW; localStorage.setItem('activeCategory', state.activeCategory); } renderCategoriesUI(); renderTasksAndTrash(); }); }
             
-            function listenForTasks() { 
+            function listenForTasks(callback) { 
                 const tasksCollection = collection(state.db, 'tasks'); 
                 if (unsubscribeTasks) unsubscribeTasks(); 
+                let isFirstLoad = true;
                 unsubscribeTasks = onSnapshot(tasksCollection, (snapshot) => { 
                     const currentlyExpanded = new Set();
                     document.querySelectorAll('.task-card.expanded').forEach(card => currentlyExpanded.add(card.dataset.id));
@@ -526,6 +688,11 @@
                         const card = document.querySelector(`.task-card[data-id="${id}"]`);
                         if(card) card.classList.add('expanded');
                     });
+                    
+                    if (isFirstLoad && callback) {
+                        callback();
+                        isFirstLoad = false;
+                    }
 
                 }, (error) => { console.error("監聽任務時發生錯誤:", error); showError("無法讀取雲端資料。"); }); 
             }
@@ -579,7 +746,6 @@
                 addCategoryButton.textContent = "+ 新增"; 
                 container.appendChild(addCategoryButton);
 
-                // This function is now the single source of truth for ALL category dropdowns
                 renderAllCategorySelects();
             }
             
@@ -587,12 +753,10 @@
                 const { categories, activeCategory } = state;
                 const selectOptionsHTML = categories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
 
-                // Update form dropdowns
                 [dom.addTaskCategory, dom.editTaskCategory].forEach(select => {
                     if (select) {
                         const currentVal = select.value;
                         select.innerHTML = selectOptionsHTML;
-                        // Try to preserve current value, if it still exists
                         if (categories.some(c => c.name === currentVal)) {
                             select.value = currentVal;
                         } else if (activeCategory !== ALL_TASKS_VIEW) {
@@ -601,7 +765,6 @@
                     }
                 });
 
-                // Update import modal dropdown
                 if(dom.importTaskCategory) {
                     const currentVal = dom.importTaskCategory.value;
                     dom.importTaskCategory.innerHTML = '<option value="__AUTO__">自動 (依檔案設定)</option>' + selectOptionsHTML;
@@ -610,7 +773,6 @@
                     }
                 }
 
-                // Update mobile navigation dropdown
                 if (dom.tabsSelect) {
                     dom.tabsSelect.innerHTML = `<option value="${ALL_TASKS_VIEW}">所有任務</option>` + selectOptionsHTML;
                     dom.tabsSelect.value = activeCategory;
@@ -623,11 +785,16 @@
             function renderTasks(tasksToRender) { dom.todoList.innerHTML = ''; dom.completedList.innerHTML = ''; const searchTerm = dom.searchInput.value.toLowerCase(); const baseTasks = (state.activeCategory === ALL_TASKS_VIEW) ? tasksToRender : tasksToRender.filter(task => task.category === state.activeCategory); const tasksToDisplay = searchTerm ? tasksToRender.filter(task => (task.title || "").toLowerCase().includes(searchTerm) || (task.description || "").toLowerCase().includes(searchTerm)) : baseTasks; const sorters = { priority: (a, b) => (PRIORITIES[b.priority] || 0) - (PRIORITIES[a.priority] || 0) || a.order - b.order, createdAt: (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0), dueDate: (a, b) => { const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity; const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity; if (dateA === Infinity && dateB === Infinity) return a.order - b.order; return dateA - dateB; } }; const todoTasks = tasksToDisplay.filter(t => t.status === STATUSES.TODO || t.status === STATUSES.HOLD).sort(sorters[state.currentSortOrder]); const processedTasks = tasksToDisplay.filter(t => t.status === STATUSES.COMPLETED).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)); todoTasks.forEach(task => dom.todoList.appendChild(createTaskElement(task))); processedTasks.forEach(task => dom.completedList.appendChild(createTaskElement(task))); if (todoTasks.length === 0) { const message = searchTerm ? '找不到符合的待辦任務。' : (state.activeCategory === ALL_TASKS_VIEW ? '所有待辦事項都已處理完畢！' : '這個分類的待辦事項都已處理完畢。'); dom.todoList.innerHTML = `<div class="text-center p-8 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><h3 class="mt-4 text-lg font-semibold text-slate-700">太棒了！</h3><p class="mt-1 text-sm">${message}</p></div>`; } if (processedTasks.length === 0) { dom.completedList.innerHTML = `<p class="text-center text-sm text-slate-500 p-4">暫無已處理的項目</p>`; } }
             function renderTrash(deletedTasks) { dom.trashList.innerHTML = ''; if (deletedTasks.length === 0) { dom.trashList.innerHTML = '<p class="text-center text-sm text-slate-500">垃圾桶是空的。</p>'; return; } deletedTasks.sort((a,b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0)).forEach(task => { const card = document.createElement('div'); card.className = 'bg-white p-3 rounded-md shadow-sm flex justify-between items-center'; card.innerHTML = `<div><p class="font-semibold text-slate-700">${task.title}</p><p class="text-xs text-slate-400">刪除於: ${task.updatedAt ? new Date(task.updatedAt.seconds * 1000).toLocaleString() : '未知'}</p></div><div class="space-x-2"><button data-task-id="${task.id}" class="restore-btn text-sm font-semibold text-indigo-600 hover:text-indigo-800">還原</button><button data-task-id="${task.id}" class="perm-delete-btn text-sm font-semibold text-rose-600 hover:text-rose-800">永久刪除</button></div>`; dom.trashList.appendChild(card); }); }
             
+            // ===== 修改：createTaskElement 使用新的顏色邏輯 =====
             function createTaskElement(task) {
                 const card = document.createElement('div');
                 card.dataset.id = task.id;
-                card.className = `task-card bg-white p-4 rounded-lg shadow-sm border-l-4 ${CREATOR_COLORS[task.createdBy] || CREATOR_COLORS['未知']} flex flex-col priority-${task.priority}`;
-                if (task.status === STATUSES.COMPLETED) card.classList.add('opacity-70');
+                // 使用 getDueDateColorClass() 來決定邊框顏色
+                card.className = `task-card bg-white p-4 rounded-lg shadow-sm border-l-4 ${getDueDateColorClass(task)} flex flex-col`;
+                
+                if (task.status === STATUSES.COMPLETED) {
+                    card.classList.add('opacity-70');
+                }
 
                 const searchTerm = dom.searchInput.value;
                 const titleText = (task.title || '').trim() || '無標題任務';
@@ -668,7 +835,7 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
                                     </button>
                                 </div>
-                                <p class="text-slate-400 mt-1">由 ${task.createdBy} 於 ${task.createdAt ? new Date(task.createdAt.seconds * 1000).toLocaleDateString() : ''} 建立</p>
+                                <p class="text-slate-400 mt-1">由 ${task.createdBy || '未知'} 於 ${task.createdAt ? new Date(task.createdAt.seconds * 1000).toLocaleDateString() : ''} 建立</p>
                                 ${dueDateHTML}
                             </div>
                             <div class="relative flex items-center space-x-1">
@@ -731,6 +898,23 @@
                 dom.pasteBtnTitle.addEventListener('click', () => handlePaste(dom.addTaskTitle)); 
                 dom.pasteBtnDesc.addEventListener('click', () => handlePaste(dom.addTaskDesc)); 
                 dom.undoBtn.addEventListener('click', handleUndoImport);
+
+                dom.closeDueTasksBtn.addEventListener('click', () => {
+                    dom.dueTasksModal.classList.add('hidden');
+                    dom.dueTasksModal.classList.remove('flex');
+                    showMainApp(); 
+                });
+
+                dom.dueTasksList.addEventListener('click', (e) => {
+                    const item = e.target.closest('.due-task-item');
+                    if (item && item.dataset.taskId) {
+                        dom.dueTasksModal.classList.add('hidden');
+                        dom.dueTasksModal.classList.remove('flex');
+                        showMainApp();
+                        focusOnTask(item.dataset.taskId);
+                    }
+                });
+                
                 window.addEventListener('online', () => updateOnlineStatus(true)); 
                 window.addEventListener('offline', () => updateOnlineStatus(false)); 
                 updateOnlineStatus(navigator.onLine); 
@@ -788,7 +972,6 @@
                 const newCategoryName = prompt("請輸入新的分類名稱：");
                 if (newCategoryName && newCategoryName.trim()) {
                     await addCategory(newCategoryName.trim());
-                    // The onSnapshot listener will automatically update the UI
                 }
             }
 
@@ -929,14 +1112,47 @@
                 try { await addDoc(collection(state.db, 'tasks'), newTask); dom.addTaskForm.reset(); dom.addTaskCategory.value = (state.activeCategory !== ALL_TASKS_VIEW) ? state.activeCategory : (state.categories[0]?.name || ''); dom.imagePreviewContainer.innerHTML = ''; state.currentImageBase64 = null; updateAiSummarizeBtnState(); } catch (error) { console.error("新增任務失敗:", error); } 
             }
 
-            async function handleUpdateTask(e) { 
-                e.preventDefault(); 
-                if (!state.currentEditingTaskId) return; 
-                const newAssignee = dom.editTaskAssignee.value.trim() || '未指派'; 
-                const updatedData = { title: dom.editTaskTitle.value, description: dom.editTaskDesc.value, dueDate: dom.editTaskDueDate.value, category: dom.editTaskCategory.value, priority: dom.editTaskPriority.value, assignee: newAssignee, }; 
-                try { await updateDoc(doc(state.db, 'tasks', state.currentEditingTaskId), updatedData); hideEditModal(); } catch (error) { console.error("更新任務失敗:", error); } 
+            async function handleUpdateTask(e) {
+                e.preventDefault();
+                if (!state.currentEditingTaskId) return;
+
+                const originalTask = state.localTasksCache.get(state.currentEditingTaskId);
+                if (!originalTask) return;
+
+                const newAssignee = dom.editTaskAssignee.value.trim() || '未指派';
+                const newDueDate = dom.editTaskDueDate.value;
+
+                let updatedHistory = [...(originalTask.history || [])];
+
+                if (originalTask.dueDate !== newDueDate) {
+                    const reason = `截止日期從 ${originalTask.dueDate || '未設定'} 改為 ${newDueDate || '未設定'}`;
+                    const historyEntry = {
+                        status: '日期變更',
+                        reason: reason,
+                        timestamp: Timestamp.now(),
+                        user: state.userName
+                    };
+                    updatedHistory.push(historyEntry);
+                }
+
+                const updatedData = {
+                    title: dom.editTaskTitle.value,
+                    description: dom.editTaskDesc.value,
+                    dueDate: newDueDate,
+                    category: dom.editTaskCategory.value,
+                    priority: dom.editTaskPriority.value,
+                    assignee: newAssignee,
+                    history: updatedHistory, 
+                };
+
+                try {
+                    await updateDoc(doc(state.db, 'tasks', state.currentEditingTaskId), updatedData);
+                    hideEditModal();
+                } catch (error) {
+                    console.error("更新任務失敗:", error);
+                }
             }
-            
+
             function handleStatusChange(taskId, newStatus) {
                 const task = state.localTasksCache.get(taskId);
                 if (!task) return;
