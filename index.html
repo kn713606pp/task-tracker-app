@@ -72,11 +72,6 @@
         .spinner { border-top-color: #fff; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .priority-緊急 { border-color: #ef4444; }
-        .priority-高 { border-color: #f97316; }
-        .priority-中 { border-color: #3b82f6; }
-        .priority-低 { border-color: #8b5cf6; }
-
         .priority-badge-緊急 { background-color: #fef2f2; color: #b91c1c; }
         .priority-badge-高 { background-color: #fff7ed; color: #c2410c; }
         .priority-badge-中 { background-color: #eff6ff; color: #1d4ed8; }
@@ -84,20 +79,19 @@
 
         .sort-btn.sort-active { background-color: white; color: #4f46e5; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        #category-tabs { flex-wrap: wrap; gap: 0.5rem; }
+        #department-tabs-container { flex-wrap: wrap; gap: 0.5rem; }
         
         #trash-container { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; }
         #trash-container.open { max-height: 500px; }
         .history-item:not(:last-child) { border-bottom: 1px dashed #e2e8f0; }
 
-        /* Custom Input Styles */
         .custom-input {
-            background-color: #f0fdf4 !important; /* Tailwind's green-50 */
-            border-color: #a7f3d0 !important; /* Tailwind's green-200 */
+            background-color: #f0fdf4 !important;
+            border-color: #a7f3d0 !important;
         }
         .custom-input:focus {
-            --tw-ring-color: #34d399 !important; /* emerald-400 */
-            border-color: #10b981 !important; /* emerald-500 */
+            --tw-ring-color: #34d399 !important;
+            border-color: #10b981 !important;
         }
         #undo-bar {
             transform: translateY(120%);
@@ -113,7 +107,7 @@
             padding-top: 0;
         }
         .task-card.expanded .task-details {
-            max-height: 1000px; /* Large enough to show content */
+            max-height: 1000px;
             padding-top: 1rem;
         }
         .expand-arrow {
@@ -147,12 +141,19 @@
                     </svg>
                     到期任務提醒
                 </h2>
-                <p class="text-sm text-slate-500 mb-6">以下是已過期或今日到期的任務，請儘速處理。</p>
+                <p class="text-sm text-slate-500 mb-6">以下是已過期或今日到期的任務，請點擊任務查看，或透過 Email/LINE 發送提醒。</p>
                 <div id="due-tasks-list" class="space-y-3">
                 </div>
             </div>
-            <div class="bg-slate-50 px-6 py-4 flex justify-end items-center rounded-b-xl flex-shrink-0">
-                <button type="button" id="close-due-tasks-btn" class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition text-sm font-semibold">我知道了</button>
+            <div class="bg-slate-50 px-6 py-4 flex justify-between items-center rounded-b-xl flex-shrink-0">
+                <span id="due-tasks-status-msg" class="text-sm text-emerald-600 font-semibold transition-opacity duration-300 opacity-0"></span>
+                <div class="flex items-center space-x-3">
+                     <button type="button" id="copy-all-reminders-btn" class="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition text-sm font-semibold flex items-center disabled:bg-slate-400 disabled:cursor-not-allowed">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM5 11a1 1 0 100 2h4a1 1 0 100-2H5z" /></svg>
+                        一鍵複製所有LINE提醒
+                    </button>
+                    <button type="button" id="close-due-tasks-btn" class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition text-sm font-semibold">我知道了</button>
+                </div>
             </div>
         </div>
     </div>
@@ -173,10 +174,10 @@
                                 <input type="text" id="edit-task-assignee" list="assignee-list" placeholder="手動輸入或選擇..." class="custom-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition">
                             </div>
                             <div>
-                                <label for="edit-task-category" class="block text-sm font-medium text-slate-600 mb-1.5">任務分類 (轉移)</label>
+                                <label for="edit-task-department" class="block text-sm font-medium text-slate-600 mb-1.5">所屬部門 (轉移)</label>
                                 <div class="flex items-center space-x-2">
-                                    <select id="edit-task-category" class="custom-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
-                                    <button type="button" id="edit-category-name-btn" title="編輯目前分類名稱" class="p-2.5 text-slate-500 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-100 rounded-lg transition-colors flex-shrink-0">
+                                    <select id="edit-task-department" class="custom-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
+                                    <button type="button" id="edit-department-name-btn" title="編輯目前部門名稱" class="p-2.5 text-slate-500 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-100 rounded-lg transition-colors flex-shrink-0">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
                                     </button>
                                 </div>
@@ -208,12 +209,12 @@
         <div class="bg-white w-full max-w-xl rounded-xl shadow-xl flex flex-col max-h-[90vh]">
              <div class="p-6 md:p-8 flex-grow overflow-y-auto">
                 <h2 class="text-xl font-semibold mb-4 text-slate-800">匯入任務</h2>
-                <p class="text-sm text-slate-500 mb-6">請將從 AI 助理取得的 JSON 文字內容直接貼到下方文字框中，並選擇要匯入的目標分類。</p>
+                <p class="text-sm text-slate-500 mb-6">請將從 AI 助理取得的 JSON 文字內容直接貼到下方文字框中，並選擇要匯入的目標部門。</p>
                 <div class="mb-4">
-                    <label for="import-task-category" class="block text-sm font-medium text-slate-600 mb-1.5">匯入至分類</label>
+                    <label for="import-task-department" class="block text-sm font-medium text-slate-600 mb-1.5">匯入至部門</label>
                     <div class="flex items-center space-x-2">
-                        <select id="import-task-category" class="custom-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
-                        <button type="button" id="add-category-from-import-btn" class="px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors flex-shrink-0">+ 新增</button>
+                        <select id="import-task-department" class="custom-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
+                        <button type="button" id="add-department-from-import-btn" class="px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors flex-shrink-0">+ 新增</button>
                     </div>
                 </div>
                 <textarea id="import-textarea" rows="8" placeholder="貼上 JSON 內容..." class="custom-input w-full p-4 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></textarea>
@@ -257,9 +258,14 @@
     <div id="app-container" class="hidden opacity-0 transition-opacity duration-500">
       <datalist id="assignee-list"></datalist>
       <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
-            <header class="text-center mb-6">
+            <header class="text-center mb-8">
                 <h1 class="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight">工作任務追蹤平台</h1>
                 <p class="text-slate-500 mt-3 max-w-lg mx-auto">您的專屬任務管理中心，讓工作流程更順暢。</p>
+                <!-- ===== 新增：視角切換器 ===== -->
+                <div class="mt-6 max-w-xs mx-auto">
+                    <label for="view-switcher" class="block text-sm font-medium text-slate-700 mb-1">目前視角</label>
+                    <select id="view-switcher" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm"></select>
+                </div>
                 <div id="offline-status" class="hidden mt-4 text-sm font-semibold text-amber-800 bg-amber-100 p-3 rounded-lg items-center justify-center max-w-md mx-auto shadow-sm border border-amber-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0v4a1 1 0 112 0V6zM12 14a1 1 0 10-2 0v-1a1 1 0 102 0v1z" clip-rule="evenodd"></path></svg><span id="offline-message"></span></div>
             </header>
             
@@ -287,8 +293,8 @@
                             </div>
                         </div>
                         <div>
-                            <label for="add-task-category" class="block text-sm font-medium text-slate-600 mb-1.5">任務分類</label>
-                            <select id="add-task-category" class="custom-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"></select>
+                            <label for="add-task-department" class="block text-sm font-medium text-slate-600 mb-1.5">所屬部門</label>
+                            <select id="add-task-department" class="custom-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition" required></select>
                         </div>
                          <div>
                             <label for="add-task-due-date" class="block text-sm font-medium text-slate-600 mb-1.5">截止日期 (可選)</label>
@@ -334,14 +340,14 @@
                 </form>
             </div>
 
-            <div class="mb-6">
+            <div id="department-tabs-wrapper" class="mb-6">
                 <div class="hidden sm:block">
                     <div class="border-b border-slate-200">
-                        <nav id="category-tabs" class="-mb-px flex items-center" aria-label="Tabs"></nav>
+                        <nav id="department-tabs" class="-mb-px flex items-center" aria-label="Tabs"></nav>
                     </div>
                 </div>
                  <div class="sm:hidden">
-                    <label for="tabs-select" class="sr-only">選擇分類</label>
+                    <label for="tabs-select" class="sr-only">選擇部門</label>
                     <select id="tabs-select" class="block w-full rounded-md border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"></select>
                 </div>
             </div>
@@ -351,7 +357,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="w-5 h-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     </div>
-                    <input type="search" id="search-input" placeholder="跨分類搜尋標題或描述..." class="custom-input w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    <input type="search" id="search-input" placeholder="在目前視角中搜尋標題或描述..." class="custom-input w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
                 </div>
             </div>
 
@@ -402,13 +408,14 @@
             const firebaseConfig = { apiKey: "AIzaSyDDAYiLAtQKkusNSR6Yw54d39F7ruWfhv8", authDomain: "team-task-app-73ec0.firebaseapp.com", projectId: "team-task-app-73ec0", storageBucket: "team-task-app-73ec0.appspot.com", messagingSenderId: "544030228623", appId: "1:544030228623:web:245b75df7fc0d4301030fa" };
             
             const STATUSES = { TODO: "待辦事項", HOLD: "暫緩中", COMPLETED: "已完成", DELETED: "已刪除" };
-            // 移除 CREATOR_COLORS，因為不再使用
             const PRIORITIES = { '緊急': 4, '高': 3, '中': 2, '低': 1 };
-            const ALL_TASKS_VIEW = '__ALL__';
+            const MANAGER_VIEW = '__ALL_VIEWS__'; // 主管視角常數
+            const ALL_TASKS_TAB = '__ALL_TABS__'; // "所有任務" 頁籤常數
             
             let state = {
-                db: null, auth: null, categories: [], localTasksCache: new Map(),
-                activeCategory: localStorage.getItem('activeCategory') || ALL_TASKS_VIEW,
+                db: null, auth: null, departments: [], localTasksCache: new Map(),
+                activeDepartmentTab: localStorage.getItem('activeDepartmentTab') || ALL_TASKS_TAB,
+                currentView: localStorage.getItem('currentView') || MANAGER_VIEW, // 新增：目前視角
                 userName: '使用者',
                 currentEditingTaskId: null, currentImageBase64: null, activeRecognitionTarget: null,
                 currentSortOrder: 'priority',
@@ -417,16 +424,17 @@
                 undoTimeout: null,
             };
 
-            let unsubscribeTasks, unsubscribeCategories;
+            let unsubscribeTasks, unsubscribeDepartments;
 
             const dom = {
                 loadingOverlay: document.getElementById('loading-overlay'),
                 welcomeOverlay: document.getElementById('welcome-overlay'),
                 appContainer: document.getElementById('app-container'),
+                viewSwitcher: document.getElementById('view-switcher'), // 新增
                 offlineStatus: document.getElementById('offline-status'),
                 offlineMessage: document.getElementById('offline-message'),
                 addTaskForm: document.getElementById('add-task-form'),
-                addTaskCategory: document.getElementById('add-task-category'),
+                addTaskDepartment: document.getElementById('add-task-department'),
                 addTaskPriority: document.getElementById('add-task-priority'),
                 addTaskAssignee: document.getElementById('add-task-assignee'),
                 addTaskTitle: document.getElementById('add-task-title'),
@@ -435,12 +443,13 @@
                 todoList: document.getElementById('todo-list'),
                 completedList: document.getElementById('completed-list'),
                 clearCompletedBtn: document.getElementById('clear-completed-btn'),
-                categoryTabsContainer: document.getElementById('category-tabs'),
+                departmentTabsWrapper: document.getElementById('department-tabs-wrapper'), // 新增 Wrapper
+                departmentTabsContainer: document.getElementById('department-tabs'),
                 tabsSelect: document.getElementById('tabs-select'),
                 editModalOverlay: document.getElementById('edit-modal-overlay'),
                 editTaskForm: document.getElementById('edit-task-form'),
-                editTaskCategory: document.getElementById('edit-task-category'),
-                editCategoryNameBtn: document.getElementById('edit-category-name-btn'),
+                editTaskDepartment: document.getElementById('edit-task-department'),
+                editDepartmentNameBtn: document.getElementById('edit-department-name-btn'),
                 editTaskPriority: document.getElementById('edit-task-priority'),
                 editTaskAssignee: document.getElementById('edit-task-assignee'),
                 editTaskDueDate: document.getElementById('edit-task-due-date'),
@@ -465,10 +474,10 @@
                 assigneeDatalist: document.getElementById('assignee-list'),
                 importModal: document.getElementById('import-modal-overlay'),
                 importTextarea: document.getElementById('import-textarea'),
-                importTaskCategory: document.getElementById('import-task-category'),
+                importTaskDepartment: document.getElementById('import-task-department'),
                 cancelImportBtn: document.getElementById('cancel-import-btn'),
                 confirmImportBtn: document.getElementById('confirm-import-btn'),
-                addCategoryFromImportBtn: document.getElementById('add-category-from-import-btn'),
+                addDepartmentFromImportBtn: document.getElementById('add-department-from-import-btn'),
                 importStatusMessage: document.getElementById('import-status-message'),
                 statusReasonModal: document.getElementById('status-reason-modal-overlay'),
                 statusReasonForm: document.getElementById('status-reason-form'),
@@ -489,6 +498,8 @@
                 dueTasksModal: document.getElementById('due-tasks-modal-overlay'),
                 dueTasksList: document.getElementById('due-tasks-list'),
                 closeDueTasksBtn: document.getElementById('close-due-tasks-btn'),
+                copyAllRemindersBtn: document.getElementById('copy-all-reminders-btn'),
+                dueTasksStatusMsg: document.getElementById('due-tasks-status-msg'),
             };
 
             function startApp() { if (!firebaseConfig.apiKey.startsWith("AIza")) { showError("您尚未設定 Firebase！"); return; } const app = initializeApp(firebaseConfig); state.auth = getAuth(app); state.db = getFirestore(app); enableIndexedDbPersistence(state.db).catch(err => console.warn("Firebase Persistence Error:", err.message)); onAuthStateChanged(state.auth, user => { if (user) { bootstrapMainApp(); } else { signInAnonymously(state.auth).catch(error => { console.error("匿名登入失敗:", error); showError(`Firebase 認證失敗: ${error.message}`); }); } }); }
@@ -500,7 +511,7 @@
                 
                 setTimeout(() => { 
                     dom.welcomeOverlay.classList.remove('visible'); 
-                    listenForCategories(); 
+                    listenForDepartments(); 
                     listenForTasks(() => {
                         checkAndShowDueTasks();
                     });
@@ -517,37 +528,42 @@
 
             function checkAndShowDueTasks() {
                 const { overdue, dueToday } = getDueAndOverdueTasks();
+                const allDueTasks = [...overdue, ...dueToday];
 
-                if (overdue.length === 0 && dueToday.length === 0) {
+                if (allDueTasks.length === 0) {
                     showMainApp(); 
                     return;
                 }
 
                 dom.dueTasksList.innerHTML = '';
-
+                
                 const createListItem = (task, isOverdue) => {
                     const statusText = isOverdue ? '已過期' : '今天到期';
                     const textColor = isOverdue ? 'text-red-600' : 'text-amber-600';
+                    const borderColor = isOverdue ? 'border-red-500' : 'border-amber-500';
                     return `
-                        <div class="due-task-item p-3 bg-slate-50 hover:bg-slate-100 rounded-lg cursor-pointer border-l-4 ${isOverdue ? 'border-red-500' : 'border-amber-500'}" data-task-id="${task.id}">
-                            <div class="flex justify-between items-center">
+                        <div class="due-task-item flex justify-between items-center p-3 bg-slate-50 rounded-lg border-l-4 ${borderColor}" data-task-id="${task.id}">
+                            <div class="task-link flex-grow cursor-pointer pr-2">
                                 <p class="font-semibold text-slate-800">${task.title}</p>
-                                <span class="text-xs font-bold ${textColor}">${statusText}</span>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    <span class="font-bold ${textColor}">${statusText}</span> | 負責人: ${task.assignee || '未指派'}
+                                </p>
                             </div>
-                            <p class="text-xs text-slate-500 mt-1">
-                                分類: ${task.category} | 日期: ${task.dueDate}
-                            </p>
+                            <div class="flex-shrink-0 flex items-center space-x-2">
+                                <button title="透過 Email 催辦" class="remind-via-email-btn p-2 rounded-full hover:bg-slate-200 transition"><svg class="w-5 h-5 text-slate-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg></button>
+                                <button title="複製 LINE 提醒訊息" class="remind-via-line-btn p-2 rounded-full hover:bg-slate-200 transition"><svg class="w-5 h-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm4.74 11.6c-.24.59-1.39.8-1.63.83s-.45.09-.65.04c-.2-.04-.52-.22-.98-.44-.46-.22-1.6-1-3.47-2.65C4.22 8.23 3.4 6.9 3.32 6.81c-.09-.1-.24-.16-.24-.41s.14-.41.28-.55c.14-.14.3-.18.4-.18h.11c.14 0 .28.05.41.28s.32.74.37.84c.05.1.05.24 0 .37-.04.14-.13.23-.26.36s-.26.24-.35.3c-.09.07-.16.14-.14.24.02.1.22.46.73.97s1.1 1.25 1.18 1.33c.09.09.18.1.28.04.1-.05.28-.18.38-.28s.18-.2.26-.2.2 0 .3.05c.1.04.6.3 1.05.7.45.4.75.7.83.8.09.1.1.24.04.37-.05.14-.41.68-.65.92z"/></svg></button>
+                            </div>
                         </div>
                     `;
                 };
 
                 if (overdue.length > 0) {
-                    dom.dueTasksList.innerHTML += `<h3 class="text-sm font-bold text-slate-600 mb-2 mt-1">已過期任務</h3>`;
+                    dom.dueTasksList.innerHTML += `<h3 class="text-sm font-bold text-slate-600 mb-2 mt-1">已過期任務 (${overdue.length})</h3>`;
                     overdue.forEach(task => dom.dueTasksList.innerHTML += createListItem(task, true));
                 }
                 
                 if (dueToday.length > 0) {
-                    dom.dueTasksList.innerHTML += `<h3 class="text-sm font-bold text-slate-600 mb-2 mt-4">今日到期任務</h3>`;
+                    dom.dueTasksList.innerHTML += `<h3 class="text-sm font-bold text-slate-600 mb-2 mt-4">今日到期任務 (${dueToday.length})</h3>`;
                     dueToday.forEach(task => dom.dueTasksList.innerHTML += createListItem(task, false));
                 }
 
@@ -583,7 +599,7 @@
                 const taskData = state.localTasksCache.get(taskId);
                 if (!taskData) return;
 
-                if (state.activeCategory !== ALL_TASKS_VIEW && state.activeCategory !== taskData.category) {
+                if (state.activeDepartmentTab !== ALL_TASKS_TAB && state.activeDepartmentTab !== taskData.category) {
                     updateActiveTab(taskData.category);
                 }
 
@@ -598,35 +614,27 @@
                 }, 100); 
             }
             
-            // ===== 新增：根據截止日期決定顏色的函式 =====
             function getDueDateColorClass(task) {
-                // 如果任務已完成，使用中性顏色
                 if (task.status === STATUSES.COMPLETED) {
                     return 'border-slate-300';
                 }
-                // 如果沒有截止日期，使用綠色
                 if (!task.dueDate) {
                     return 'border-green-500';
                 }
-
                 const today = new Date();
-                today.setHours(0, 0, 0, 0); // 將今天時間標準化到午夜
-
+                today.setHours(0, 0, 0, 0);
                 const dueDate = new Date(task.dueDate);
-                dueDate.setHours(0, 0, 0, 0); // 將任務截止時間標準化到午夜
-
+                dueDate.setHours(0, 0, 0, 0);
                 const oneWeekFromNow = new Date(today);
                 oneWeekFromNow.setDate(today.getDate() + 7);
-
                 if (dueDate < today) {
-                    return 'border-red-500'; // 過期：紅色
+                    return 'border-red-500';
                 } else if (dueDate <= oneWeekFromNow) {
-                    return 'border-blue-500'; // 一週內到期：藍色
+                    return 'border-blue-500';
                 } else {
-                    return 'border-green-500'; // 其他：綠色
+                    return 'border-green-500';
                 }
             }
-
 
             function populateSelects() { const priorityOptions = Object.keys(PRIORITIES).map(p => `<option value="${p}">${p}</option>`).join(''); [dom.addTaskPriority, dom.editTaskPriority].forEach(sel => sel.innerHTML = priorityOptions); }
             
@@ -658,7 +666,33 @@
             }
             function highlightText(text, searchTerm) { if (!searchTerm || !text) return text; const regex = new RegExp(`(${searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'); return text.replace(regex, `<mark>$1</mark>`); }
 
-            function listenForCategories() { const categoriesCollection = collection(state.db, 'categories'); if(unsubscribeCategories) unsubscribeCategories(); unsubscribeCategories = onSnapshot(query(categoriesCollection), (snapshot) => { if (snapshot.empty) { const defaultCategories = ["董總交辦", "行政管理", "運籌管理", "有機植萃", "品質管理"]; const batch = writeBatch(state.db); defaultCategories.forEach(name => { const docRef = doc(collection(state.db, "categories")); batch.set(docRef, { name }); }); batch.commit(); return; } state.categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); const categoryNames = state.categories.map(c => c.name); if (state.activeCategory !== ALL_TASKS_VIEW && !categoryNames.includes(state.activeCategory)) { state.activeCategory = ALL_TASKS_VIEW; localStorage.setItem('activeCategory', state.activeCategory); } renderCategoriesUI(); renderTasksAndTrash(); }); }
+            function listenForDepartments() { 
+                const departmentsCollection = collection(state.db, 'categories'); 
+                if(unsubscribeDepartments) unsubscribeDepartments(); 
+                unsubscribeDepartments = onSnapshot(query(departmentsCollection), (snapshot) => { 
+                    if (snapshot.empty) { 
+                        const defaultDepts = ["董總交辦", "行政管理", "運籌管理", "有機植萃", "品質管理"]; 
+                        const batch = writeBatch(state.db); 
+                        defaultDepts.forEach(name => { 
+                            const docRef = doc(collection(state.db, "categories")); 
+                            batch.set(docRef, { name }); 
+                        }); 
+                        batch.commit(); 
+                        return; 
+                    } 
+                    state.departments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+                    const departmentNames = state.departments.map(c => c.name); 
+                    if (state.activeDepartmentTab !== ALL_TASKS_TAB && !departmentNames.includes(state.activeDepartmentTab)) { 
+                        state.activeDepartmentTab = ALL_TASKS_TAB; 
+                        localStorage.setItem('activeDepartmentTab', state.activeDepartmentTab); 
+                    }
+                    if (state.currentView !== MANAGER_VIEW && !departmentNames.includes(state.currentView)) {
+                        handleViewChange(MANAGER_VIEW);
+                    }
+                    renderDepartmentsAndViewsUI(); 
+                    renderTasksAndTrash(); 
+                }); 
+            }
             
             function listenForTasks(callback) { 
                 const tasksCollection = collection(state.db, 'tasks'); 
@@ -697,8 +731,27 @@
                 }, (error) => { console.error("監聽任務時發生錯誤:", error); showError("無法讀取雲端資料。"); }); 
             }
             
-            function renderCategoriesUI() { 
-                const container = dom.categoryTabsContainer; 
+            function renderDepartmentsAndViewsUI() {
+                renderViewSwitcher();
+                renderDepartmentTabs();
+                renderAllDepartmentSelects();
+            }
+
+            function renderViewSwitcher() {
+                const options = state.departments.map(dept => `<option value="${dept.name}">${dept.name} 視角</option>`).join('');
+                dom.viewSwitcher.innerHTML = `<option value="${MANAGER_VIEW}">主管視角 (所有部門)</option>${options}`;
+                dom.viewSwitcher.value = state.currentView;
+            }
+            
+            function renderDepartmentTabs() { 
+                // 如果是部門視角，隱藏頁籤
+                if (state.currentView !== MANAGER_VIEW) {
+                    dom.departmentTabsWrapper.style.display = 'none';
+                    return;
+                }
+                dom.departmentTabsWrapper.style.display = 'block';
+
+                const container = dom.departmentTabsContainer; 
                 container.innerHTML = ''; 
                 const allTasks = Array.from(state.localTasksCache.values()); 
                 const todoCounts = allTasks.reduce((acc, task) => { 
@@ -711,16 +764,16 @@
                 
                 const createTab = (name, id, isAllTab = false) => { 
                     const count = isAllTab ? totalTodoCount : (todoCounts[name] || 0); 
-                    const categoryValue = isAllTab ? ALL_TASKS_VIEW : name; 
-                    const isActive = state.activeCategory === categoryValue; 
+                    const departmentValue = isAllTab ? ALL_TASKS_TAB : name; 
+                    const isActive = state.activeDepartmentTab === departmentValue; 
                     const tabWrapper = document.createElement('div'); 
                     tabWrapper.className = `category-tab relative flex items-center pr-2 rounded-md transition-colors duration-200 ${isActive ? 'tab-active' : 'tab-inactive'}`; 
                     const tabLink = document.createElement('a'); 
                     tabLink.href = '#'; 
-                    tabLink.dataset.category = categoryValue; 
+                    tabLink.dataset.department = departmentValue; 
                     if (!isAllTab) { 
-                        tabLink.dataset.categoryId = id; 
-                        tabWrapper.innerHTML += `<button data-category-name="${name}" class="export-category-btn p-1 text-slate-400 hover:text-indigo-600"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>` 
+                        tabLink.dataset.departmentId = id; 
+                        tabWrapper.innerHTML += `<button data-department-name="${name}" class="export-category-btn p-1 text-slate-400 hover:text-indigo-600"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>` 
                     } 
                     tabLink.className = `flex-grow pl-4 pr-2 py-2 text-sm font-semibold`; 
                     tabLink.innerHTML = `<span>${name}</span> <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${isActive ? 'bg-indigo-200 text-indigo-800' : 'bg-slate-200 text-slate-600'}">${count}</span>`; 
@@ -729,67 +782,94 @@
                         const removeButton = document.createElement('button'); 
                         removeButton.className = 'remove-category-btn p-1 rounded-full hover:bg-red-200 hover:text-red-700 text-slate-400'; 
                         removeButton.innerHTML = `<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`; 
-                        removeButton.title = `移除分類 "${name}"`; 
-                        removeButton.dataset.categoryId = id; 
-                        removeButton.dataset.categoryName = name; 
+                        removeButton.title = `移除部門 "${name}"`; 
+                        removeButton.dataset.departmentId = id; 
+                        removeButton.dataset.departmentName = name; 
                         tabWrapper.appendChild(removeButton); 
                     } 
                     container.appendChild(tabWrapper); 
                 }; 
                 
                 createTab('所有任務', null, true); 
-                state.categories.forEach(cat => createTab(cat.name, cat.id)); 
+                state.departments.forEach(cat => createTab(cat.name, cat.id)); 
                 
-                const addCategoryButton = document.createElement('button'); 
-                addCategoryButton.id = 'add-category-btn'; 
-                addCategoryButton.className = "ml-2 px-3 py-1.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors duration-200"; 
-                addCategoryButton.textContent = "+ 新增"; 
-                container.appendChild(addCategoryButton);
+                const addDepartmentButton = document.createElement('button'); 
+                addDepartmentButton.id = 'add-department-btn'; 
+                addDepartmentButton.className = "ml-2 px-3 py-1.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors duration-200"; 
+                addDepartmentButton.textContent = "+ 新增"; 
+                container.appendChild(addDepartmentButton);
 
-                renderAllCategorySelects();
+                dom.tabsSelect.innerHTML = `<option value="${ALL_TASKS_TAB}">所有任務</option>` + state.departments.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
+                dom.tabsSelect.value = state.activeDepartmentTab;
             }
             
-            function renderAllCategorySelects() {
-                const { categories, activeCategory } = state;
-                const selectOptionsHTML = categories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
+            function renderAllDepartmentSelects() {
+                const { departments, activeDepartmentTab } = state;
+                const selectOptionsHTML = departments.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
 
-                [dom.addTaskCategory, dom.editTaskCategory].forEach(select => {
+                [dom.addTaskDepartment, dom.editTaskDepartment].forEach(select => {
                     if (select) {
                         const currentVal = select.value;
                         select.innerHTML = selectOptionsHTML;
-                        if (categories.some(c => c.name === currentVal)) {
+                        if (departments.some(c => c.name === currentVal)) {
                             select.value = currentVal;
-                        } else if (activeCategory !== ALL_TASKS_VIEW) {
-                            select.value = activeCategory;
+                        } else if (activeDepartmentTab !== ALL_TASKS_TAB) {
+                            select.value = activeDepartmentTab;
                         }
                     }
                 });
 
-                if(dom.importTaskCategory) {
-                    const currentVal = dom.importTaskCategory.value;
-                    dom.importTaskCategory.innerHTML = '<option value="__AUTO__">自動 (依檔案設定)</option>' + selectOptionsHTML;
-                    if (categories.some(c => c.name === currentVal)) {
-                       dom.importTaskCategory.value = currentVal;
+                if(dom.importTaskDepartment) {
+                    const currentVal = dom.importTaskDepartment.value;
+                    dom.importTaskDepartment.innerHTML = '<option value="__AUTO__">自動 (依檔案設定)</option>' + selectOptionsHTML;
+                    if (departments.some(c => c.name === currentVal)) {
+                       dom.importTaskDepartment.value = currentVal;
                     }
-                }
-
-                if (dom.tabsSelect) {
-                    dom.tabsSelect.innerHTML = `<option value="${ALL_TASKS_VIEW}">所有任務</option>` + selectOptionsHTML;
-                    dom.tabsSelect.value = activeCategory;
                 }
             }
 
             function renderAssigneeDatalist(assignees) { dom.assigneeDatalist.innerHTML = Array.from(assignees).map(name => `<option value="${name}"></option>`).join(''); }
             
-            function renderTasksAndTrash() { const allTasks = Array.from(state.localTasksCache.values()); const activeTasks = allTasks.filter(t => t.status !== STATUSES.DELETED); const deletedTasks = allTasks.filter(t => t.status === STATUSES.DELETED); renderTasks(activeTasks); renderTrash(deletedTasks); }
-            function renderTasks(tasksToRender) { dom.todoList.innerHTML = ''; dom.completedList.innerHTML = ''; const searchTerm = dom.searchInput.value.toLowerCase(); const baseTasks = (state.activeCategory === ALL_TASKS_VIEW) ? tasksToRender : tasksToRender.filter(task => task.category === state.activeCategory); const tasksToDisplay = searchTerm ? tasksToRender.filter(task => (task.title || "").toLowerCase().includes(searchTerm) || (task.description || "").toLowerCase().includes(searchTerm)) : baseTasks; const sorters = { priority: (a, b) => (PRIORITIES[b.priority] || 0) - (PRIORITIES[a.priority] || 0) || a.order - b.order, createdAt: (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0), dueDate: (a, b) => { const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity; const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity; if (dateA === Infinity && dateB === Infinity) return a.order - b.order; return dateA - dateB; } }; const todoTasks = tasksToDisplay.filter(t => t.status === STATUSES.TODO || t.status === STATUSES.HOLD).sort(sorters[state.currentSortOrder]); const processedTasks = tasksToDisplay.filter(t => t.status === STATUSES.COMPLETED).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)); todoTasks.forEach(task => dom.todoList.appendChild(createTaskElement(task))); processedTasks.forEach(task => dom.completedList.appendChild(createTaskElement(task))); if (todoTasks.length === 0) { const message = searchTerm ? '找不到符合的待辦任務。' : (state.activeCategory === ALL_TASKS_VIEW ? '所有待辦事項都已處理完畢！' : '這個分類的待辦事項都已處理完畢。'); dom.todoList.innerHTML = `<div class="text-center p-8 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><h3 class="mt-4 text-lg font-semibold text-slate-700">太棒了！</h3><p class="mt-1 text-sm">${message}</p></div>`; } if (processedTasks.length === 0) { dom.completedList.innerHTML = `<p class="text-center text-sm text-slate-500 p-4">暫無已處理的項目</p>`; } }
+            function renderTasksAndTrash() { 
+                const allTasks = Array.from(state.localTasksCache.values()); 
+                // 1. Filter by View
+                const tasksForCurrentView = (state.currentView === MANAGER_VIEW)
+                    ? allTasks
+                    : allTasks.filter(task => task.category === state.currentView);
+
+                const activeTasks = tasksForCurrentView.filter(t => t.status !== STATUSES.DELETED); 
+                const deletedTasks = tasksForCurrentView.filter(t => t.status === STATUSES.DELETED); 
+                renderTasks(activeTasks); 
+                renderTrash(deletedTasks); 
+            }
+            function renderTasks(tasksToRender) { 
+                dom.todoList.innerHTML = ''; 
+                dom.completedList.innerHTML = ''; 
+                const searchTerm = dom.searchInput.value.toLowerCase(); 
+                
+                // 2. Filter by Active Tab (only if in Manager View)
+                const baseTasks = (state.currentView === MANAGER_VIEW && state.activeDepartmentTab !== ALL_TASKS_TAB)
+                    ? tasksToRender.filter(task => task.category === state.activeDepartmentTab)
+                    : tasksToRender;
+
+                // 3. Filter by Search
+                const tasksToDisplay = searchTerm 
+                    ? baseTasks.filter(task => (task.title || "").toLowerCase().includes(searchTerm) || (task.description || "").toLowerCase().includes(searchTerm)) 
+                    : baseTasks;
+
+                const sorters = { priority: (a, b) => (PRIORITIES[b.priority] || 0) - (PRIORITIES[a.priority] || 0) || a.order - b.order, createdAt: (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0), dueDate: (a, b) => { const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity; const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity; if (dateA === Infinity && dateB === Infinity) return a.order - b.order; return dateA - dateB; } }; 
+                const todoTasks = tasksToDisplay.filter(t => t.status === STATUSES.TODO || t.status === STATUSES.HOLD).sort(sorters[state.currentSortOrder]); 
+                const processedTasks = tasksToDisplay.filter(t => t.status === STATUSES.COMPLETED).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)); 
+                todoTasks.forEach(task => dom.todoList.appendChild(createTaskElement(task))); 
+                processedTasks.forEach(task => dom.completedList.appendChild(createTaskElement(task))); 
+                if (todoTasks.length === 0) { const message = searchTerm ? '找不到符合的待辦任務。' : (state.activeDepartmentTab === ALL_TASKS_TAB ? '所有待辦事項都已處理完畢！' : '這個部門的待辦事項都已處理完畢。'); dom.todoList.innerHTML = `<div class="text-center p-8 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><h3 class="mt-4 text-lg font-semibold text-slate-700">太棒了！</h3><p class="mt-1 text-sm">${message}</p></div>`; } 
+                if (processedTasks.length === 0) { dom.completedList.innerHTML = `<p class="text-center text-sm text-slate-500 p-4">暫無已處理的項目</p>`; } 
+            }
             function renderTrash(deletedTasks) { dom.trashList.innerHTML = ''; if (deletedTasks.length === 0) { dom.trashList.innerHTML = '<p class="text-center text-sm text-slate-500">垃圾桶是空的。</p>'; return; } deletedTasks.sort((a,b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0)).forEach(task => { const card = document.createElement('div'); card.className = 'bg-white p-3 rounded-md shadow-sm flex justify-between items-center'; card.innerHTML = `<div><p class="font-semibold text-slate-700">${task.title}</p><p class="text-xs text-slate-400">刪除於: ${task.updatedAt ? new Date(task.updatedAt.seconds * 1000).toLocaleString() : '未知'}</p></div><div class="space-x-2"><button data-task-id="${task.id}" class="restore-btn text-sm font-semibold text-indigo-600 hover:text-indigo-800">還原</button><button data-task-id="${task.id}" class="perm-delete-btn text-sm font-semibold text-rose-600 hover:text-rose-800">永久刪除</button></div>`; dom.trashList.appendChild(card); }); }
             
-            // ===== 修改：createTaskElement 使用新的顏色邏輯 =====
             function createTaskElement(task) {
                 const card = document.createElement('div');
                 card.dataset.id = task.id;
-                // 使用 getDueDateColorClass() 來決定邊框顏色
                 card.className = `task-card bg-white p-4 rounded-lg shadow-sm border-l-4 ${getDueDateColorClass(task)} flex flex-col`;
                 
                 if (task.status === STATUSES.COMPLETED) {
@@ -853,19 +933,59 @@
             function generateActionButtons(task) { const editButtonHTML = `<button class="edit-btn p-1.5 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 rounded-full transition-colors" title="編輯任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>`; const deleteButtonHTML = `<button class="delete-btn p-1.5 text-slate-400 hover:bg-rose-100 hover:text-rose-600 rounded-full transition-colors" title="移至垃圾桶"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>`; if (task.status === STATUSES.COMPLETED) { return `<button class="action-option p-1.5 text-slate-400 hover:bg-amber-100 hover:text-amber-600 rounded-full transition-colors" title="復原任務" data-status="${STATUSES.TODO}"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8.707 14.707a1 1 0 01-1.414 0L4.586 12a1 1 0 111.414-1.414L8 12.586l5.293-5.293a1 1 0 111.414 1.414l-6 6z" /></svg></button>` + deleteButtonHTML; } let menuItems = `<a href="#" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 action-option" data-status="${STATUSES.COMPLETED}">完成</a>`; if (task.status !== STATUSES.HOLD) { menuItems += `<a href="#" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 action-option" data-status="${STATUSES.HOLD}">暫緩</a>`; } else { menuItems = `<a href="#" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 action-option" data-status="${STATUSES.TODO}">恢復處理</a>` + menuItems; } const mainAction = `<div class="relative"><button class="action-menu-btn p-1.5 text-slate-400 hover:bg-emerald-100 hover:text-emerald-600 rounded-full transition-colors" title="操作"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg></button><div class="action-menu hidden origin-top-right absolute right-0 bottom-full mb-2 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"><div class="py-1">${menuItems}</div></div></div>`; return mainAction + editButtonHTML + deleteButtonHTML; }
             function renderSubtasks(task) { let html = ''; if (task.subtasks && task.subtasks.length > 0) { html += '<h4 class="text-sm font-semibold mb-2 text-slate-600">子任務：</h4><ul class="space-y-2 pl-1 mb-3">'; task.subtasks.forEach((subtask, index) => { html += `<li class="flex items-center justify-between group" data-index="${index}"><div class="flex items-center flex-grow"><input type="checkbox" id="subtask-${task.id}-${index}" class="subtask-checkbox h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" ${subtask.completed ? 'checked' : ''}><label for="subtask-${task.id}-${index}" class="ml-3 block text-sm text-slate-700 ${subtask.completed ? 'line-through text-slate-400' : ''}">${subtask.text}</label></div><button class="delete-subtask-btn text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition px-2" title="刪除子任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button></li>`; }); html += '</ul>'; } if (task.status !== STATUSES.COMPLETED) { html += `<form class="add-subtask-form mt-2 flex items-center space-x-2"><input type="text" placeholder="新增子任務..." class="custom-input flex-grow w-full text-sm px-3 py-1.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"><button type="submit" class="text-sm bg-slate-200 text-slate-600 font-semibold py-1.5 px-3 rounded-md hover:bg-slate-300 transition flex-shrink-0">新增</button><button type="button" class="generate-subtasks-btn p-1.5 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 rounded-full transition-colors" title="AI 產生子任務"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg></button></form>`; } return html; }
             
+            async function addReminderHistory(taskId, method) {
+                const task = state.localTasksCache.get(taskId);
+                if (!task) return false;
+                
+                const reminderHistory = {
+                    status: '催辦通知',
+                    reason: `由 ${state.userName} 透過 ${method} 發送提醒`,
+                    timestamp: Timestamp.now(),
+                    user: state.userName
+                };
+                const updatedHistory = [...(task.history || []), reminderHistory];
+
+                try {
+                    await updateDoc(doc(state.db, 'tasks', taskId), { history: updatedHistory });
+                    return true;
+                } catch (error) {
+                    console.error(`透過 ${method} 催辦失敗:`, error);
+                    return false;
+                }
+            }
+
+            function showDueTaskStatusMessage(message) {
+                dom.dueTasksStatusMsg.textContent = message;
+                dom.dueTasksStatusMsg.classList.remove('opacity-0');
+                setTimeout(() => dom.dueTasksStatusMsg.classList.add('opacity-0'), 3000);
+            }
+
+            function handleViewChange(newView) {
+                state.currentView = newView;
+                localStorage.setItem('currentView', newView);
+                if (newView !== MANAGER_VIEW) {
+                    // 如果切換到部門視角，重置頁籤篩選為"所有"
+                    state.activeDepartmentTab = ALL_TASKS_TAB;
+                    localStorage.setItem('activeDepartmentTab', ALL_TASKS_TAB);
+                }
+                renderDepartmentsAndViewsUI();
+                renderTasksAndTrash();
+            }
+
             function bindEventListeners() { 
+                dom.viewSwitcher.addEventListener('change', (e) => handleViewChange(e.target.value));
                 dom.addTaskForm.addEventListener('submit', handleAddTask); 
                 dom.editTaskForm.addEventListener('submit', handleUpdateTask); 
                 dom.cancelEditBtn.addEventListener('click', hideEditModal); 
                 dom.searchInput.addEventListener('input', renderTasksAndTrash); 
                 dom.clearCompletedBtn.addEventListener('click', clearCompletedTasks); 
-                dom.editCategoryNameBtn.addEventListener('click', handleEditCategoryName);
+                dom.editDepartmentNameBtn.addEventListener('click', handleEditDepartmentName);
                 dom.tabsSelect.addEventListener('change', (e) => updateActiveTab(e.target.value));
 
                 dom.todoList.addEventListener('click', handleTaskCardClick);
                 dom.completedList.addEventListener('click', handleTaskCardClick);
 
-                dom.categoryTabsContainer.addEventListener('click', handleCategoryActions); 
+                dom.departmentTabsContainer.addEventListener('click', handleDepartmentActions); 
                 
                 dom.todoList.addEventListener('submit', handleSubtaskForms); 
                 dom.todoList.addEventListener('change', handleSubtaskForms); 
@@ -873,7 +993,7 @@
                 dom.completedList.addEventListener('change', handleSubtaskForms); 
 
                 dom.importBtnMain.addEventListener('click', () => { 
-                    renderAllCategorySelects();
+                    renderAllDepartmentSelects();
                     dom.importModal.classList.remove('hidden'); 
                     dom.importModal.classList.add('flex'); 
                 }); 
@@ -882,7 +1002,7 @@
                     dom.importModal.classList.remove('flex'); 
                 }); 
                 dom.confirmImportBtn.addEventListener('click', handleImportFromText); 
-                dom.addCategoryFromImportBtn.addEventListener('click', handleAddCategoryFromImport);
+                dom.addDepartmentFromImportBtn.addEventListener('click', handleAddDepartmentFromImport);
                 dom.sortControls.addEventListener('click', handleSortClick); 
                 dom.copyTitleToDescBtn.addEventListener('click', () => { dom.addTaskDesc.value = dom.addTaskTitle.value; updateAiSummarizeBtnState(); }); 
                 dom.statusReasonForm.addEventListener('submit', (e) => { e.preventDefault(); const { taskId, newStatus } = state.statusChangeContext; updateTaskStatus(taskId, newStatus, dom.statusReasonInput.value); dom.statusReasonModal.classList.add('hidden'); dom.statusReasonModal.classList.remove('flex'); dom.statusReasonInput.value = ''; }); 
@@ -905,16 +1025,87 @@
                     showMainApp(); 
                 });
 
-                dom.dueTasksList.addEventListener('click', (e) => {
-                    const item = e.target.closest('.due-task-item');
-                    if (item && item.dataset.taskId) {
+                dom.dueTasksList.addEventListener('click', async (e) => {
+                    const taskItem = e.target.closest('.due-task-item');
+                    if (!taskItem) return;
+
+                    const taskId = taskItem.dataset.taskId;
+                    const task = state.localTasksCache.get(taskId);
+                    if (!task) return;
+
+                    if (e.target.closest('.remind-via-email-btn')) {
+                        const subject = encodeURIComponent(`【任務催辦】請回報「${task.title}」進度`);
+                        const body = encodeURIComponent(`提醒 ${task.assignee || '同仁'}：\n\n任務：「${task.title}」\n截止日期：${task.dueDate}\n\n此任務已到期，請儘速回報進度，謝謝！`);
+                        window.location.href = `mailto:${task.assignee || ''}?subject=${subject}&body=${body}`;
+                        await addReminderHistory(taskId, 'Email');
+                        showDueTaskStatusMessage('Email 已開啟...');
+                    } 
+                    else if (e.target.closest('.remind-via-line-btn')) {
+                        const btn = e.target.closest('.remind-via-line-btn');
+                        const message = `提醒【${task.assignee || '負責同仁'}】，任務「${task.title}」已到期(${task.dueDate})，請儘速回報進度。`;
+                        try {
+                           await navigator.clipboard.writeText(message);
+                           await addReminderHistory(taskId, 'LINE');
+                           btn.innerHTML = `<svg class="w-5 h-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>`;
+                           btn.disabled = true;
+                           showDueTaskStatusMessage('LINE 提醒訊息已複製！');
+                        } catch(err) {
+                           console.error('複製失敗: ', err);
+                           showDueTaskStatusMessage('複製失敗，請檢查瀏覽器設定');
+                        }
+                    }
+                    else if (e.target.closest('.task-link')) {
                         dom.dueTasksModal.classList.add('hidden');
                         dom.dueTasksModal.classList.remove('flex');
                         showMainApp();
-                        focusOnTask(item.dataset.taskId);
+                        focusOnTask(taskId);
                     }
                 });
                 
+                dom.copyAllRemindersBtn.addEventListener('click', async () => {
+                    const lineButtons = dom.dueTasksList.querySelectorAll('.remind-via-line-btn:not(:disabled)');
+                    if (lineButtons.length === 0) {
+                        showDueTaskStatusMessage('所有任務均已催辦');
+                        return;
+                    }
+
+                    let allMessages = '';
+                    const taskIdsToUpdate = [];
+
+                    lineButtons.forEach(btn => {
+                        const taskId = btn.closest('.due-task-item').dataset.taskId;
+                        const task = state.localTasksCache.get(taskId);
+                        if (task) {
+                            allMessages += `提醒【${task.assignee || '負責同仁'}】，任務「${task.title}」已到期(${task.dueDate})，請儘速回報進度。\n`;
+                            taskIdsToUpdate.push(taskId);
+                        }
+                    });
+
+                    try {
+                        await navigator.clipboard.writeText(allMessages.trim());
+                        
+                        const batch = writeBatch(state.db);
+                        taskIdsToUpdate.forEach(taskId => {
+                             const task = state.localTasksCache.get(taskId);
+                             const reminderHistory = { status: '催辦通知', reason: `由 ${state.userName} 透過 LINE (批次) 發送提醒`, timestamp: Timestamp.now(), user: state.userName };
+                             const updatedHistory = [...(task.history || []), reminderHistory];
+                             const taskRef = doc(state.db, 'tasks', taskId);
+                             batch.update(taskRef, { history: updatedHistory });
+                        });
+                        await batch.commit();
+
+                        lineButtons.forEach(btn => {
+                            btn.innerHTML = `<svg class="w-5 h-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>`;
+                            btn.disabled = true;
+                        });
+                        showDueTaskStatusMessage(`已複製 ${lineButtons.length} 則 LINE 提醒！`);
+
+                    } catch(err) {
+                        console.error('批次複製失敗: ', err);
+                        showDueTaskStatusMessage('複製失敗，請檢查瀏覽器設定');
+                    }
+                });
+
                 window.addEventListener('online', () => updateOnlineStatus(true)); 
                 window.addEventListener('offline', () => updateOnlineStatus(false)); 
                 updateOnlineStatus(navigator.onLine); 
@@ -922,62 +1113,62 @@
                 if (SpeechRecognition) { const recognition = new SpeechRecognition(); recognition.continuous = false; recognition.lang = 'zh-TW'; recognition.interimResults = false; recognition.onstart = () => { showStatusMessage('正在聆聽...'); }; recognition.onresult = (event) => { if (state.activeRecognitionTarget) { state.activeRecognitionTarget.value += event.results[0][0].transcript; if (state.activeRecognitionTarget === dom.addTaskDesc) updateAiSummarizeBtnState(); } }; recognition.onerror = () => { showStatusMessage('語音辨識錯誤', true); }; recognition.onend = () => { setTimeout(() => showStatusMessage(''), 2000); state.activeRecognitionTarget = null; }; const setupRecognition = (target) => { state.activeRecognitionTarget = target; recognition.start(); }; dom.voiceInputBtnTitle.addEventListener('click', () => setupRecognition(dom.addTaskTitle)); dom.voiceInputBtnDesc.addEventListener('click', () => setupRecognition(dom.addTaskDesc)); dom.voiceInputBtnAssignee.addEventListener('click', () => setupRecognition(dom.addTaskAssignee)); } 
             }
             
-            async function handleCategoryActions(e) {
-                const tabLink = e.target.closest('a[data-category]');
+            async function handleDepartmentActions(e) {
+                const tabLink = e.target.closest('a[data-department]');
                 if (tabLink) {
                     e.preventDefault();
-                    updateActiveTab(tabLink.dataset.category);
+                    updateActiveTab(tabLink.dataset.department);
                     return;
                 }
 
                 const removeBtn = e.target.closest('.remove-category-btn'); 
                 if (removeBtn) { 
                     e.stopPropagation(); 
-                    const { categoryId, categoryName } = removeBtn.dataset; 
-                    if (confirm(`確定要移除分類 "${categoryName}" 嗎？\n此分類下的所有任務將會被永久刪除。`)) { 
-                        await removeCategory(categoryId, categoryName); 
+                    const { departmentId, departmentName } = removeBtn.dataset; 
+                    if (confirm(`確定要移除部門 "${departmentName}" 嗎？\n此部門下的所有任務將會被永久刪除。`)) { 
+                        await removeDepartment(departmentId, departmentName); 
                     } 
                     return; 
                 } 
                 
-                if (e.target.id === 'add-category-btn') { 
-                    const newCategoryName = prompt("請輸入新的分類名稱："); 
-                    if (newCategoryName && newCategoryName.trim()) { 
-                        await addCategory(newCategoryName.trim()); 
+                if (e.target.id === 'add-department-btn') { 
+                    const newDepartmentName = prompt("請輸入新的部門名稱："); 
+                    if (newDepartmentName && newDepartmentName.trim()) { 
+                        await addDepartment(newDepartmentName.trim()); 
                     } 
                 } 
                 
                 const exportBtn = e.target.closest('.export-category-btn'); 
                 if (exportBtn) { 
-                    handleExport(exportBtn.dataset.categoryName); 
+                    handleExport(exportBtn.dataset.departmentName); 
                 } 
             }
             
-            async function addCategory(name) {
-                const categoryNames = state.categories.map(c => c.name);
-                if (categoryNames.includes(name)) {
-                    alert('此分類名稱已存在！');
+            async function addDepartment(name) {
+                const departmentNames = state.departments.map(c => c.name);
+                if (departmentNames.includes(name)) {
+                    alert('此部門名稱已存在！');
                     return null;
                 }
                 try {
                     const docRef = await addDoc(collection(state.db, "categories"), { name });
                     return docRef;
                 } catch (error) {
-                    console.error("新增分類失敗:", error);
+                    console.error("新增部門失敗:", error);
                     return null;
                 }
             }
 
-            async function handleAddCategoryFromImport() {
-                const newCategoryName = prompt("請輸入新的分類名稱：");
-                if (newCategoryName && newCategoryName.trim()) {
-                    await addCategory(newCategoryName.trim());
+            async function handleAddDepartmentFromImport() {
+                const newDepartmentName = prompt("請輸入新的部門名稱：");
+                if (newDepartmentName && newDepartmentName.trim()) {
+                    await addDepartment(newDepartmentName.trim());
                 }
             }
 
-            async function removeCategory(categoryId, categoryName) { const tasksToDeleteQuery = query(collection(state.db, 'tasks'), where("category", "==", categoryName)); const querySnapshot = await getDocs(tasksToDeleteQuery); const batch = writeBatch(state.db); querySnapshot.forEach(doc => { batch.delete(doc.ref); }); batch.delete(doc(state.db, 'categories', categoryId)); await batch.commit(); if (state.activeCategory === categoryName) { updateActiveTab(ALL_TASKS_VIEW); } }
+            async function removeDepartment(departmentId, departmentName) { const tasksToDeleteQuery = query(collection(state.db, 'tasks'), where("category", "==", departmentName)); const querySnapshot = await getDocs(tasksToDeleteQuery); const batch = writeBatch(state.db); querySnapshot.forEach(doc => { batch.delete(doc.ref); }); batch.delete(doc(state.db, 'categories', departmentId)); await batch.commit(); if (state.activeDepartmentTab === departmentName) { updateActiveTab(ALL_TASKS_TAB); } }
             
-            async function updateCategoryName(id, oldName, newName) {
+            async function updateDepartmentName(id, oldName, newName) {
                 if (!newName || newName === oldName) return false;
                 
                 const tasksToUpdateQuery = query(collection(state.db, 'tasks'), where("category", "==", oldName));
@@ -991,46 +1182,49 @@
                 
                 try {
                     await batch.commit();
-                    if (state.activeCategory === oldName) {
-                        state.activeCategory = newName; 
-                        localStorage.setItem('activeCategory', newName);
+                    if (state.activeDepartmentTab === oldName) {
+                        state.activeDepartmentTab = newName; 
+                        localStorage.setItem('activeDepartmentTab', newName);
+                    }
+                    if (state.currentView === oldName) {
+                        handleViewChange(newName);
                     }
                     return true;
                 } catch (error) {
-                    console.error("更新分類名稱失敗:", error);
+                    console.error("更新部門名稱失敗:", error);
                     return false;
                 }
             }
 
-            async function handleEditCategoryName() {
-                const currentCategoryName = dom.editTaskCategory.value;
-                if (!currentCategoryName) {
-                    alert('請先選擇一個要編輯的分類。');
+            async function handleEditDepartmentName() {
+                const currentDepartmentName = dom.editTaskDepartment.value;
+                if (!currentDepartmentName) {
+                    alert('請先選擇一個要編輯的部門。');
                     return;
                 }
 
-                const categoryToEdit = state.categories.find(c => c.name === currentCategoryName);
-                if (!categoryToEdit) return;
+                const departmentToEdit = state.departments.find(c => c.name === currentDepartmentName);
+                if (!departmentToEdit) return;
 
-                const newCategoryName = prompt("請輸入新的分類名稱：", currentCategoryName);
+                const newDepartmentName = prompt("請輸入新的部門名稱：", currentDepartmentName);
 
-                if (newCategoryName === null || !newCategoryName.trim() || newCategoryName.trim() === currentCategoryName) {
+                if (newDepartmentName === null || !newDepartmentName.trim() || newDepartmentName.trim() === currentDepartmentName) {
                     return;
                 }
                 
-                const trimmedNewName = newCategoryName.trim();
+                const trimmedNewName = newDepartmentName.trim();
 
-                if (state.categories.some(c => c.name === trimmedNewName)) {
-                    alert('此分類名稱已存在！');
+                if (state.departments.some(c => c.name === trimmedNewName)) {
+                    alert('此部門名稱已存在！');
                     return;
                 }
 
-                const success = await updateCategoryName(categoryToEdit.id, categoryToEdit.name, trimmedNewName);
+                const success = await updateDepartmentName(departmentToEdit.id, departmentToEdit.name, trimmedNewName);
                 
                 if (success) {
                     const currentTask = state.localTasksCache.get(state.currentEditingTaskId);
-                    if (currentTask && currentTask.category === currentCategoryName) {
-                        dom.editTaskCategory.value = trimmedNewName;
+                    if (currentTask && currentTask.category === currentDepartmentName) {
+                        dom.editTaskDepartment.value = trimmedNewName;
                     }
                 }
             }
@@ -1108,8 +1302,8 @@
                 e.preventDefault(); 
                 const newOrder = Array.from(state.localTasksCache.values()).filter(t => t.status !== STATUSES.COMPLETED && t.status !== STATUSES.DELETED).length; 
                 const newAssignee = dom.addTaskAssignee.value.trim() || '未指派'; 
-                const newTask = { title: dom.addTaskTitle.value, description: dom.addTaskDesc.value, dueDate: dom.addTaskDueDate.value, createdAt: serverTimestamp(), category: dom.addTaskCategory.value, createdBy: state.userName, status: STATUSES.TODO, order: newOrder, imageData: state.currentImageBase64, subtasks: [], priority: dom.addTaskPriority.value, assignee: newAssignee, history: [{ status: STATUSES.TODO, reason: '初始建立', timestamp: Timestamp.now(), user: state.userName }] }; 
-                try { await addDoc(collection(state.db, 'tasks'), newTask); dom.addTaskForm.reset(); dom.addTaskCategory.value = (state.activeCategory !== ALL_TASKS_VIEW) ? state.activeCategory : (state.categories[0]?.name || ''); dom.imagePreviewContainer.innerHTML = ''; state.currentImageBase64 = null; updateAiSummarizeBtnState(); } catch (error) { console.error("新增任務失敗:", error); } 
+                const newTask = { title: dom.addTaskTitle.value, description: dom.addTaskDesc.value, dueDate: dom.addTaskDueDate.value, createdAt: serverTimestamp(), category: dom.addTaskDepartment.value, createdBy: state.userName, status: STATUSES.TODO, order: newOrder, imageData: state.currentImageBase64, subtasks: [], priority: dom.addTaskPriority.value, assignee: newAssignee, history: [{ status: STATUSES.TODO, reason: '初始建立', timestamp: Timestamp.now(), user: state.userName }] }; 
+                try { await addDoc(collection(state.db, 'tasks'), newTask); dom.addTaskForm.reset(); dom.addTaskDepartment.value = (state.activeDepartmentTab !== ALL_TASKS_TAB) ? state.activeDepartmentTab : (state.departments[0]?.name || ''); dom.imagePreviewContainer.innerHTML = ''; state.currentImageBase64 = null; updateAiSummarizeBtnState(); } catch (error) { console.error("新增任務失敗:", error); } 
             }
 
             async function handleUpdateTask(e) {
@@ -1139,7 +1333,7 @@
                     title: dom.editTaskTitle.value,
                     description: dom.editTaskDesc.value,
                     dueDate: newDueDate,
-                    category: dom.editTaskCategory.value,
+                    category: dom.editTaskDepartment.value,
                     priority: dom.editTaskPriority.value,
                     assignee: newAssignee,
                     history: updatedHistory, 
@@ -1170,13 +1364,13 @@
 
             async function updateTaskStatus(taskId, newStatus, reason = '') { const task = state.localTasksCache.get(taskId); if (!task) return; const newHistoryEntry = { status: newStatus, reason: reason.trim() || '狀態變更', timestamp: Timestamp.now(), user: state.userName }; const updatedHistory = [...(task.history || []), newHistoryEntry]; await updateDoc(doc(state.db, 'tasks', taskId), { status: newStatus, history: updatedHistory, updatedAt: serverTimestamp() }); }
             async function deleteTask(id) { if (!id) return; if (confirm('確定要將此任務移至垃圾桶嗎？')) { await updateTaskStatus(id, STATUSES.DELETED, '移至垃圾桶'); } }
-            function showEditModal(task) { if(!task) return; state.currentEditingTaskId = task.id; dom.editTaskTitle.value = task.title || ''; dom.editTaskDesc.value = task.description || ''; dom.editTaskDueDate.value = task.dueDate || ''; dom.editTaskCategory.value = task.category || state.categories[0].name; dom.editTaskPriority.value = task.priority || '中'; dom.editTaskAssignee.value = task.assignee || ''; dom.editModalOverlay.classList.remove('hidden'); dom.editModalOverlay.classList.add('flex'); }
+            function showEditModal(task) { if(!task) return; state.currentEditingTaskId = task.id; dom.editTaskTitle.value = task.title || ''; dom.editTaskDesc.value = task.description || ''; dom.editTaskDueDate.value = task.dueDate || ''; dom.editTaskDepartment.value = task.category || state.departments[0].name; dom.editTaskPriority.value = task.priority || '中'; dom.editTaskAssignee.value = task.assignee || ''; dom.editModalOverlay.classList.remove('hidden'); dom.editModalOverlay.classList.add('flex'); }
             function hideEditModal() { state.currentEditingTaskId = null; dom.editModalOverlay.classList.add('hidden'); dom.editModalOverlay.classList.remove('flex'); }
-            function updateActiveTab(newCategory) { state.activeCategory = newCategory; localStorage.setItem('activeCategory', newCategory); renderCategoriesUI(); renderTasksAndTrash(); }
+            function updateActiveTab(newTab) { state.activeDepartmentTab = newTab; localStorage.setItem('activeDepartmentTab', newTab); renderDepartmentsAndViewsUI(); renderTasksAndTrash(); }
             function showError(message) { dom.loadingOverlay.innerHTML = `<div class="text-center text-red-700 bg-red-100 p-4 rounded-lg"><h3>錯誤</h3><p>${message}</p></div>`; dom.loadingOverlay.style.display = 'flex'; }
             function handleTrashActions(e) { const restoreBtn = e.target.closest('.restore-btn'); if (restoreBtn) { updateTaskStatus(restoreBtn.dataset.taskId, STATUSES.TODO, '從垃圾桶還原'); return; } const permDeleteBtn = e.target.closest('.perm-delete-btn'); if (permDeleteBtn) { if (confirm('確定要永久刪除這個任務嗎？此操作無法復原。')) { deleteDoc(doc(state.db, 'tasks', permDeleteBtn.dataset.taskId)); } } }
             function showHistoryModal(task) { dom.historyList.innerHTML = ''; if (!task.history || task.history.length === 0) { dom.historyList.innerHTML = '<p class="text-slate-500">沒有歷史紀錄。</p>'; } else { task.history.slice().reverse().forEach(entry => { const item = document.createElement('div'); item.className = 'history-item pb-2'; item.innerHTML = `<p class="font-semibold text-slate-800">${entry.status}</p><p class="text-sm text-slate-600">${entry.reason}</p><p class="text-xs text-slate-400 mt-1">${entry.timestamp ? new Date(entry.timestamp.seconds * 1000).toLocaleString() : '時間未知'} by ${entry.user}</p>`; dom.historyList.appendChild(item); }); } dom.historyModal.classList.remove('hidden'); dom.historyModal.classList.add('flex'); }
-            async function clearCompletedTasks() { const tasksToClear = Array.from(state.localTasksCache.values()).filter(t => t.status === STATUSES.COMPLETED && (state.activeCategory === ALL_TASKS_VIEW || t.category === state.activeCategory)); if (tasksToClear.length === 0) return; if (!confirm(`確定要將 ${tasksToClear.length} 個已完成項目移至垃圾桶嗎？`)) return; const batch = writeBatch(state.db); tasksToClear.forEach(task => { const newHistoryEntry = { status: STATUSES.DELETED, reason: '清除已完成項目', timestamp: Timestamp.now(), user: state.userName }; const updatedHistory = [...(task.history || []), newHistoryEntry]; batch.update(doc(state.db, 'tasks', task.id), { status: STATUSES.DELETED, history: updatedHistory, updatedAt: serverTimestamp() }); }); await batch.commit(); }
+            async function clearCompletedTasks() { const tasksToClear = Array.from(state.localTasksCache.values()).filter(t => t.status === STATUSES.COMPLETED && (state.activeDepartmentTab === ALL_TASKS_TAB || t.category === state.activeDepartmentTab)); if (tasksToClear.length === 0) return; if (!confirm(`確定要將 ${tasksToClear.length} 個已完成項目移至垃圾桶嗎？`)) return; const batch = writeBatch(state.db); tasksToClear.forEach(task => { const newHistoryEntry = { status: STATUSES.DELETED, reason: '清除已完成項目', timestamp: Timestamp.now(), user: state.userName }; const updatedHistory = [...(task.history || []), newHistoryEntry]; batch.update(doc(state.db, 'tasks', task.id), { status: STATUSES.DELETED, history: updatedHistory, updatedAt: serverTimestamp() }); }); await batch.commit(); }
             function handleSubtaskForms(e) { const taskCard = e.target.closest('.task-card'); if (!taskCard) return; const taskId = taskCard.dataset.id; if (e.target.matches('input.subtask-checkbox')) { const subtaskIndex = parseInt(e.target.closest('li').dataset.index); toggleSubtaskCompletion(taskId, subtaskIndex); } else if (e.target.closest('.add-subtask-form')) { e.preventDefault(); const form = e.target.closest('.add-subtask-form'); const input = form.querySelector('input[type="text"]'); if (input.value.trim()) { addSubtask(taskId, input.value.trim()); input.value = ''; } } }
             async function addSubtask(taskId, subtaskText) { const task = state.localTasksCache.get(taskId); if(!task) return; const newSubtask = { text: subtaskText, completed: false }; const updatedSubtasks = [...(task.subtasks || []), newSubtask]; await updateDoc(doc(state.db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
             async function deleteSubtask(taskId, subtaskIndex) { const task = state.localTasksCache.get(taskId); if(!task) return; const updatedSubtasks = [...task.subtasks]; updatedSubtasks.splice(subtaskIndex, 1); await updateDoc(doc(state.db, 'tasks', taskId), { subtasks: updatedSubtasks }); }
@@ -1208,11 +1402,11 @@
             function updateOnlineStatus(isOnline) { if (isOnline) { dom.offlineStatus.classList.add('hidden'); dom.offlineStatus.classList.remove('flex'); } else { dom.offlineMessage.textContent = '您目前處於離線狀態，所有變更將在恢復連線後自動同步。'; dom.offlineStatus.classList.remove('hidden'); dom.offlineStatus.classList.add('flex'); } }
             function handleSortClick(e) { const button = e.target.closest('.sort-btn'); if (!button) return; state.currentSortOrder = button.dataset.sort; updateSortButtonsUI(); renderTasksAndTrash(); }
             function updateSortButtonsUI() { dom.sortControls.querySelectorAll('.sort-btn').forEach(btn => { const isSelected = btn.dataset.sort === state.currentSortOrder; btn.classList.toggle('sort-active', isSelected); btn.classList.toggle('text-slate-500', !isSelected); }); }
-            function handleExport(categoryName) { const tasksToExport = Array.from(state.localTasksCache.values()).filter(task => !categoryName || task.category === categoryName); const dataToExport = { categories: state.categories, tasks: tasksToExport.map(task => { if (task.createdAt && task.createdAt.toDate) { return { ...task, createdAt: task.createdAt.toDate().toISOString() }; } return task; }), }; const dataStr = JSON.stringify(dataToExport, null, 2); const blob = new Blob([dataStr], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `tasks-backup-${categoryName || 'all'}-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showStatusMessage('資料已成功匯出！'); }
+            function handleExport(departmentName) { const tasksToExport = Array.from(state.localTasksCache.values()).filter(task => !departmentName || task.category === departmentName); const dataToExport = { departments: state.departments, tasks: tasksToExport.map(task => { if (task.createdAt && task.createdAt.toDate) { return { ...task, createdAt: task.createdAt.toDate().toISOString() }; } return task; }), }; const dataStr = JSON.stringify(dataToExport, null, 2); const blob = new Blob([dataStr], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `tasks-backup-${departmentName || 'all'}-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showStatusMessage('資料已成功匯出！'); }
             
             async function handleImportFromText() {
                 const jsonText = dom.importTextarea.value;
-                const targetCategory = dom.importTaskCategory.value;
+                const targetDepartment = dom.importTaskDepartment.value;
                 if (!jsonText.trim()) {
                     return showImportStatusMessage('請貼上 JSON 內容');
                 }
@@ -1228,7 +1422,7 @@
 
                     const batch = writeBatch(state.db);
                     const importedTaskIds = [];
-                    const existingCategoryNames = state.categories.map(c => c.name);
+                    const existingDepartmentNames = state.departments.map(c => c.name);
 
                     data.tasks.forEach(task => {
                         const newDocRef = doc(collection(state.db, 'tasks'));
@@ -1246,13 +1440,13 @@
                             taskTimestamp = serverTimestamp();
                         }
 
-                        let finalCategory;
-                        if (targetCategory !== '__AUTO__') {
-                            finalCategory = targetCategory;
-                        } else if (task.category && existingCategoryNames.includes(task.category)) {
-                            finalCategory = task.category;
+                        let finalDepartment;
+                        if (targetDepartment !== '__AUTO__') {
+                            finalDepartment = targetDepartment;
+                        } else if (task.category && existingDepartmentNames.includes(task.category)) {
+                            finalDepartment = task.category;
                         } else {
-                            finalCategory = existingCategoryNames.length > 0 ? existingCategoryNames[0] : '未分類';
+                            finalDepartment = existingDepartmentNames.length > 0 ? existingDepartmentNames[0] : '未分類';
                         }
 
                         const newTaskData = {
@@ -1260,7 +1454,7 @@
                             description: task.description || '',
                             priority: task.priority || '中',
                             status: task.status || STATUSES.TODO,
-                            category: finalCategory,
+                            category: finalDepartment,
                             assignee: task.assignee || '未指派',
                             createdBy: task.createdBy || state.userName,
                             createdAt: taskTimestamp,
@@ -1273,7 +1467,7 @@
                     });
                     
                     await batch.commit();
-                    state.lastImportIds = { tasks: importedTaskIds, categories: [] };
+                    state.lastImportIds = { tasks: importedTaskIds, departments: [] };
                     dom.importTextarea.value = '';
                     dom.importModal.classList.add('hidden');
                     dom.importModal.classList.remove('flex');
@@ -1301,7 +1495,7 @@
                 
                 const batch = writeBatch(state.db);
                 state.lastImportIds.tasks.forEach(id => batch.delete(doc(state.db, 'tasks', id)));
-                state.lastImportIds.categories.forEach(id => batch.delete(doc(state.db, 'categories', id)));
+                state.lastImportIds.departments.forEach(id => batch.delete(doc(state.db, 'categories', id)));
 
                 try {
                     await batch.commit();
@@ -1320,3 +1514,4 @@
     </script>
 </body>
 </html>
+
