@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase 整合測試</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase 配置和認證模組 -->
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="user-data-manager.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto p-6 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Firebase 整合測試</h1>
+            <p class="text-gray-600 mt-2">測試 Google 登入和數據管理功能</p>
+        </header>
+
+        <!-- 認證狀態顯示 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">認證狀態</h2>
+            <div id="auth-status" class="text-gray-600">檢查中...</div>
+            
+            <!-- 登入按鈕 -->
+            <button class="google-login-btn guest-only mt-4 flex items-center px-4 py-2 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition-colors" onclick="authManager.signInWithGoogle()">
+                <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                使用 Google 登入
+            </button>
+
+            <!-- 用戶資訊 -->
+            <div class="user-info auth-required mt-4" style="display: none;">
+                <!-- 用戶資訊將由 JavaScript 動態插入 -->
+            </div>
+
+            <!-- 登出按鈕 -->
+            <button class="logout-btn auth-required mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors" onclick="authManager.signOut()" style="display: none;">
+                登出
+            </button>
+        </div>
+
+        <!-- 數據管理測試 -->
+        <div class="auth-required bg-white rounded-lg shadow-md p-6 mb-6" style="display: none;">
+            <h2 class="text-xl font-semibold mb-4">數據管理測試</h2>
+            
+            <!-- 任務數據測試 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-2">任務數據</h3>
+                <div class="flex space-x-2 mb-2">
+                    <button onclick="testSaveTask()" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm">
+                        保存測試任務
+                    </button>
+                    <button onclick="testLoadTasks()" class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm">
+                        載入任務
+                    </button>
+                </div>
+                <div id="task-result" class="text-sm text-gray-600"></div>
+            </div>
+
+            <!-- 麻將數據測試 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-2">麻將戰績數據</h3>
+                <div class="flex space-x-2 mb-2">
+                    <button onclick="testSaveMahjong()" class="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600 text-sm">
+                        保存測試戰績
+                    </button>
+                    <button onclick="testLoadMahjong()" class="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-sm">
+                        載入戰績
+                    </button>
+                </div>
+                <div id="mahjong-result" class="text-sm text-gray-600"></div>
+            </div>
+
+            <!-- 用戶設定測試 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-2">用戶設定</h3>
+                <div class="flex space-x-2 mb-2">
+                    <button onclick="testSaveSettings()" class="px-3 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm">
+                        保存測試設定
+                    </button>
+                    <button onclick="testLoadSettings()" class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm">
+                        載入設定
+                    </button>
+                </div>
+                <div id="settings-result" class="text-sm text-gray-600"></div>
+            </div>
+
+            <!-- 備份測試 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-2">數據備份</h3>
+                <div class="flex space-x-2 mb-2">
+                    <button onclick="testCreateBackup()" class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm">
+                        創建備份
+                    </button>
+                </div>
+                <div id="backup-result" class="text-sm text-gray-600"></div>
+            </div>
+        </div>
+
+        <!-- 狀態訊息 -->
+        <div id="status-messages" class="space-y-2">
+            <!-- 動態訊息將在這裡顯示 -->
+        </div>
+    </div>
+
+    <!-- 錯誤和成功訊息 -->
+    <div id="auth-error" class="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50 max-w-md" style="display: none;">
+        <span class="block sm:inline"></span>
+    </div>
+    <div id="auth-success" class="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50 max-w-md" style="display: none;">
+        <span class="block sm:inline"></span>
+    </div>
+
+    <script>
+        // 測試任務保存
+        async function testSaveTask() {
+            try {
+                const testTasks = [
+                    {
+                        id: 'test-task-1',
+                        title: '測試任務 1',
+                        description: '這是一個測試任務',
+                        priority: '高',
+                        assignee: '測試用戶',
+                        status: 'todo',
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                
+                await userDataManager.saveTasksToCloud(testTasks, 'test-department');
+                document.getElementById('task-result').textContent = '任務保存成功！';
+                showMessage('任務數據已保存到雲端', 'success');
+            } catch (error) {
+                document.getElementById('task-result').textContent = '任務保存失敗：' + error.message;
+                showMessage('任務保存失敗：' + error.message, 'error');
+            }
+        }
+
+        // 測試任務載入
+        async function testLoadTasks() {
+            try {
+                const tasks = await userDataManager.loadTasksFromCloud('test-department');
+                document.getElementById('task-result').textContent = 
+                    tasks ? `成功載入 ${tasks.length} 個任務` : '沒有找到任務數據';
+                showMessage('任務數據載入完成', 'success');
+            } catch (error) {
+                document.getElementById('task-result').textContent = '任務載入失敗：' + error.message;
+                showMessage('任務載入失敗：' + error.message, 'error');
+            }
+        }
+
+        // 測試麻將數據保存
+        async function testSaveMahjong() {
+            try {
+                const testSessions = [
+                    {
+                        id: 'test-session-1',
+                        date: new Date().toISOString().split('T')[0],
+                        players: ['玩家1', '玩家2', '玩家3', '玩家4'],
+                        results: [100, -50, -25, -25],
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                
+                await userDataManager.saveMahjongDataToCloud(testSessions);
+                document.getElementById('mahjong-result').textContent = '麻將戰績保存成功！';
+                showMessage('麻將戰績已保存到雲端', 'success');
+            } catch (error) {
+                document.getElementById('mahjong-result').textContent = '麻將戰績保存失敗：' + error.message;
+                showMessage('麻將戰績保存失敗：' + error.message, 'error');
+            }
+        }
+
+        // 測試麻將數據載入
+        async function testLoadMahjong() {
+            try {
+                const sessions = await userDataManager.loadMahjongDataFromCloud();
+                document.getElementById('mahjong-result').textContent = 
+                    sessions ? `成功載入 ${sessions.length} 場戰績` : '沒有找到戰績數據';
+                showMessage('麻將戰績載入完成', 'success');
+            } catch (error) {
+                document.getElementById('mahjong-result').textContent = '麻將戰績載入失敗：' + error.message;
+                showMessage('麻將戰績載入失敗：' + error.message, 'error');
+            }
+        }
+
+        // 測試用戶設定保存
+        async function testSaveSettings() {
+            try {
+                const testSettings = {
+                    theme: 'dark',
+                    language: 'zh-Hant',
+                    notifications: true,
+                    lastModified: new Date().toISOString()
+                };
+                
+                await userDataManager.saveUserSettings(testSettings);
+                document.getElementById('settings-result').textContent = '用戶設定保存成功！';
+                showMessage('用戶設定已保存', 'success');
+            } catch (error) {
+                document.getElementById('settings-result').textContent = '用戶設定保存失敗：' + error.message;
+                showMessage('用戶設定保存失敗：' + error.message, 'error');
+            }
+        }
+
+        // 測試用戶設定載入
+        async function testLoadSettings() {
+            try {
+                const settings = await userDataManager.loadUserSettings();
+                document.getElementById('settings-result').textContent = 
+                    settings ? `設定載入成功：${JSON.stringify(settings, null, 2)}` : '沒有找到設定數據';
+                showMessage('用戶設定載入完成', 'success');
+            } catch (error) {
+                document.getElementById('settings-result').textContent = '用戶設定載入失敗：' + error.message;
+                showMessage('用戶設定載入失敗：' + error.message, 'error');
+            }
+        }
+
+        // 測試創建備份
+        async function testCreateBackup() {
+            try {
+                const backup = await userDataManager.createFullBackup();
+                document.getElementById('backup-result').textContent = 
+                    `備份創建成功！備份大小：${JSON.stringify(backup).length} 字符`;
+                showMessage('數據備份創建完成', 'success');
+                
+                // 提供下載備份的選項
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backup_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                document.getElementById('backup-result').textContent = '備份創建失敗：' + error.message;
+                showMessage('數據備份創建失敗：' + error.message, 'error');
+            }
+        }
+
+        // 顯示狀態訊息
+        function showMessage(message, type = 'info') {
+            const messagesContainer = document.getElementById('status-messages');
+            const messageEl = document.createElement('div');
+            
+            const bgColor = type === 'error' ? 'bg-red-100 border-red-400 text-red-700' :
+                           type === 'success' ? 'bg-green-100 border-green-400 text-green-700' :
+                           'bg-blue-100 border-blue-400 text-blue-700';
+            
+            messageEl.className = `px-4 py-3 rounded border ${bgColor}`;
+            messageEl.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            
+            messagesContainer.insertBefore(messageEl, messagesContainer.firstChild);
+            
+            // 自動移除舊訊息
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 5000);
+        }
+
+        // 監聽認證狀態變化
+        if (window.authManager) {
+            authManager.onAuthStateChanged((user) => {
+                const statusEl = document.getElementById('auth-status');
+                if (user) {
+                    statusEl.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <span class="text-green-600 font-medium">✅ 已登入</span>
+                            <span class="text-gray-600">用戶：${user.displayName || user.email}</span>
+                        </div>
+                    `;
+                } else {
+                    statusEl.innerHTML = `
+                        <span class="text-gray-500">❌ 未登入</span>
+                    `;
+                }
+            });
+        }
+
+        // 頁面載入完成後的初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            showMessage('Firebase 整合測試頁面載入完成', 'info');
+        });
+    </script>
+</body>
+</html>
