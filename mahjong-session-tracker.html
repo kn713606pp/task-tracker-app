@@ -138,6 +138,10 @@
                     <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0h6m4-6v6a2 2 0 002 2h2a2 2 0 002-2v-6a2 2 0 00-2-2h-2a2 2 0 00-2 2z"></path></svg>
                     <span>查看儀表板</span>
                 </button>
+                <button id="export-all-btn" title="把全部牌局與行事曆打包成一個備份檔，可帶到新版或新手機" class="flex items-center gap-2 bg-white text-gray-700 font-semibold py-2 px-4 rounded-lg shadow hover:bg-gray-50 transition">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v10a2 2 0 01-2 2z"></path></svg>
+                    <span>一鍵匯出全部</span>
+                </button>
                 <div class="bg-gray-200 p-1 rounded-lg flex">
                     <button id="view-list-btn" class="view-switch-btn px-4 py-2 text-sm font-semibold rounded-md transition">列表模式</button>
                     <button id="view-calendar-btn" class="view-switch-btn px-4 py-2 text-sm font-semibold rounded-md transition">行事曆</button>
@@ -238,7 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
         bindEvents() {
             this.elements.addSessionBtn.onclick = () => this.openModal();
             this.elements.dashboardBtn.onclick = () => this.openDashboardModal();
-            
+            document.getElementById('export-all-btn').onclick = () => this.exportAll();
+
             const listAndModalClickHandler = e => {
                 const editBtn = e.target.closest('.edit-btn');
                 const deleteBtn = e.target.closest('.delete-btn');
@@ -853,6 +858,64 @@ document.addEventListener('DOMContentLoaded', () => {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        },
+        /* ===== 一鍵匯出全部（牌局紀錄＋整份行事曆），供新版／新手機匯入 ===== */
+        buildEventICS(rec) {
+            const formatDT = (date, time) => `${date.replace(/-/g, '')}T${time.replace(/:/g, '')}00`;
+            let description = `底/台: ${rec.base}/${rec.points}\\n`;
+            if (rec.rake > 0) description += `抽頭/場費: ${rec.rake}\\n`;
+            description += '\\n';
+            if (rec.mode === 'chips') {
+                description += '四人戰績:\\n' + rec.players.map(p => `${p.name}: ${this.formatCurrency(p.score)}`).join('\\n');
+            } else {
+                description += `個人戰績: ${this.formatCurrency(rec.myScore)}`;
+            }
+            if (rec.notes) description += `\\n\\n備註: ${rec.notes}`;
+            return ['BEGIN:VEVENT', `UID:${rec.id}@mahjong.app`, `DTSTAMP:${new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15)}Z`, `DTSTART:${formatDT(rec.date, rec.startTime)}`, `DTEND:${formatDT(rec.date, rec.endTime)}`, `SUMMARY:麻將牌局 @ ${rec.location || '未記錄地點'}`, `LOCATION:${rec.location || ''}`, `DESCRIPTION:${description}`, 'END:VEVENT'].join('\r\n');
+        },
+        buildAllICS(records) {
+            return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//mahjong.app//v1//ZH', 'X-WR-CALNAME:麻將牌局', ...records.map(r => this.buildEventICS(r)), 'END:VCALENDAR'].join('\r\n');
+        },
+        async deliverFile(blob, filename) {
+            // 手機優先走分享選單（可存到「檔案」、雲端或傳給自己），不支援時退回下載
+            try {
+                const file = new File([blob], filename, { type: blob.type });
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: filename });
+                    return 'shared';
+                }
+            } catch (err) {
+                if (err && err.name === 'AbortError') return 'cancelled';
+            }
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            return 'downloaded';
+        },
+        async exportAll() {
+            const stored = localStorage.getItem('mahjong_sessions_v14');
+            if (!stored || JSON.parse(stored).length === 0) {
+                alert('目前沒有已儲存的牌局，畫面上顯示的是範例資料，沒有東西可匯出。');
+                return;
+            }
+            const records = JSON.parse(stored);
+            const bundle = {
+                app: 'mahjong-record',
+                kind: 'full-backup',
+                version: 'v14',
+                exportedFrom: 'v1',
+                exportedAt: new Date().toISOString(),
+                mainPlayerName: localStorage.getItem('mahjong_main_player_v14') || this.state.mainPlayerName,
+                records,
+                calendarICS: this.buildAllICS(records),
+            };
+            const filename = `mahjong-backup-${new Date().toISOString().slice(0, 10)}.json`;
+            const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+            const result = await this.deliverFile(blob, filename);
+            if (result === 'cancelled') return;
+            alert(`已匯出 ${records.length} 場牌局與整份行事曆。\n檔名：${filename}\n\n到新版或新手機開啟「麻將戰績分析中心」，第一次啟動選「匯入舊紀錄」選這個檔即可。`);
         },
     };
     
